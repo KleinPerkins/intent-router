@@ -33,7 +33,7 @@
     {"id": "KI4", "invariant": "Kernel-sourced consequence. Consequence-based confirmations are sourced from the KERNEL disposition's consequence descriptor {destroys_unshared_work, irreversible, affects_shared_ref}, not from the router and not from a verb list.", "check": "consequence_from_kernel"}
   ],
   "machine_checks": {
-    "no_execution_path":            {"enforces": "CR1", "test_id": "tests.test_cli_stub.TestCliStub.test_no_execution_path", "status": "active", "phase": "P0"},
+    "no_execution_path":            {"enforces": "CR1", "test_id": "tests.test_no_execution.TestNoExecutionAcrossRuntime.test_no_forbidden_primitive_in_any_runtime_module", "status": "active", "phase": "P0"},
     "additive_within_v1":           {"enforces": "CR4", "test_id": "tests.test_additive_compat.TestAdditiveCompat.test_all_deferred_phases_additive", "status": "active", "phase": "P0"},
     "zero_link":                    {"enforces": "CR3", "test_id": "tests.test_zero_link.TestZeroLink.test_no_forbidden_literals_in_tracked_surface", "status": "active", "phase": "P0"},
     "constitution_wellformed":      {"enforces": "CR4", "test_id": "tests.test_constitution.TestConstitution.test_constitution_wellformed", "status": "active", "phase": "P0"},

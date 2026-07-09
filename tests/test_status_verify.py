@@ -41,17 +41,39 @@ def _ledger(p0_block: str, current_phase: str = "P0") -> str:
     return body
 
 
+_GIT_ENV = {**os.environ, "GIT_TERMINAL_PROMPT": "0", "GIT_CONFIG_GLOBAL": "/dev/null",
+            "GIT_CONFIG_SYSTEM": "/dev/null"}
+
+
 def _init_git_repo(root: Path) -> str:
     """Init a throwaway git repo with one empty commit; return its full SHA. Lets a fixture pin a
     REAL resolvable commit (so the honest ledger passes) or contrast it with a fake SHA."""
-    env = {**os.environ, "GIT_TERMINAL_PROMPT": "0", "GIT_CONFIG_GLOBAL": "/dev/null",
-           "GIT_CONFIG_SYSTEM": "/dev/null"}
-    subprocess.run(["git", "init", "-q"], cwd=root, check=True, env=env)
-    subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=root, check=True, env=env)
-    subprocess.run(["git", "config", "user.name", "t"], cwd=root, check=True, env=env)
-    subprocess.run(["git", "commit", "--allow-empty", "-q", "-m", "seed"], cwd=root, check=True, env=env)
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True, env=_GIT_ENV)
+    subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=root, check=True, env=_GIT_ENV)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=root, check=True, env=_GIT_ENV)
+    subprocess.run(["git", "commit", "--allow-empty", "-q", "-m", "seed"], cwd=root, check=True, env=_GIT_ENV)
     return subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True,
-                          check=True, env=env).stdout.strip()
+                          check=True, env=_GIT_ENV).stdout.strip()
+
+
+def _divergent_repo(root: Path) -> tuple[str, str]:
+    """Init a repo with a main commit A and a DIVERGENT side commit B off the initial commit. Returns
+    (head_of_main, divergent_sha). B is a real object but is NOT an ancestor of main's HEAD — the
+    exact case `git cat-file -e` (object-exists) passes but `merge-base --is-ancestor` must reject."""
+    def g(*args):
+        return subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True,
+                              check=True, env=_GIT_ENV)
+    subprocess.run(["git", "init", "-q", str(root)], check=True, env=_GIT_ENV)
+    g("config", "user.email", "t@example.com")
+    g("config", "user.name", "t")
+    g("checkout", "-q", "-b", "main")
+    g("commit", "--allow-empty", "-q", "-m", "A")
+    g("checkout", "-q", "-b", "side")
+    g("commit", "--allow-empty", "-q", "-m", "B")
+    g("checkout", "-q", "main")
+    head = g("rev-parse", "HEAD").stdout.strip()
+    diverged = g("rev-parse", "side").stdout.strip()
+    return head, diverged
 
 
 class TestStatusVerify(unittest.TestCase):
@@ -192,6 +214,103 @@ class TestStatusVerify(unittest.TestCase):
             joined = "\n".join(errors)
             self.assertIn(fake, joined, "must name the unresolvable commit")
             self.assertIn("does NOT resolve", joined, "must reject a fabricated commit SHA")
+
+    def test_strict_rejects_malformed_pr_url(self):
+        """SHOULD-FIX #5(a): a well-formed-looking but malformed pr (`.../pull/999999-not-real`) used
+        to pass with 0 errors. In strict mode it is now rejected by SHAPE, offline + deterministically.
+        Non-strict keeps the old presence-only behavior."""
+        with TemporaryDirectory() as d:
+            root = Path(d)
+            sha = _init_git_repo(root)  # real + ancestor-of-itself, so only the pr is at fault
+            (root / "RESUME.md").write_text("r", encoding="utf-8")
+            (root / "ROLLBACK.md").write_text("r", encoding="utf-8")
+            p0 = textwrap.dedent(f"""\
+              - id: P0
+                title: "P0"
+                status: done
+                pr: "https://github.com/KleinPerkins/intent-router/pull/999999-not-real"
+                commit: "{sha}"
+                current_gate: "bad-pr"
+                resume_pointer: RESUME.md
+                rollback_path: ROLLBACK.md
+                passed_test_ids: ["x.Y.z"]
+                files: []
+            """)
+            (root / "status.yml").write_text(_ledger(p0, current_phase="K0-K1"), encoding="utf-8")
+            strict = status_verify.verify(root / "status.yml", root, run_tests=False, strict=True)
+            self.assertTrue(any("malformed" in e for e in strict),
+                            f"strict must reject a malformed pr, got: {strict}")
+            loose = status_verify.verify(root / "status.yml", root, run_tests=False, strict=False)
+            self.assertFalse(any("malformed" in e for e in loose),
+                             "non-strict must keep presence-only pr behavior")
+
+    def test_commit_ancestor_helper_distinguishes_ancestor_from_object(self):
+        """SHOULD-FIX #5(b): the ancestry helper says True for an ancestor and False for a real-but-
+        divergent object — object-existence alone is not ancestry."""
+        with TemporaryDirectory() as d:
+            root = Path(d)
+            head, diverged = _divergent_repo(root)
+            self.assertIs(status_verify._commit_is_ancestor(head, root), True)
+            self.assertIs(status_verify._commit_is_ancestor(diverged, root), False)
+
+    def test_strict_rejects_nonancestor_commit(self):
+        """SHOULD-FIX #5(b): a done phase pinning a real object that is NOT on the current history is
+        rejected in strict mode (ancestry, not just `cat-file -e`)."""
+        with TemporaryDirectory() as d:
+            root = Path(d)
+            _head, diverged = _divergent_repo(root)
+            (root / "RESUME.md").write_text("r", encoding="utf-8")
+            (root / "ROLLBACK.md").write_text("r", encoding="utf-8")
+            p0 = textwrap.dedent(f"""\
+              - id: P0
+                title: "P0"
+                status: done
+                pr: "https://example.com/o/r/pull/1"
+                commit: "{diverged}"
+                current_gate: "off-history"
+                resume_pointer: RESUME.md
+                rollback_path: ROLLBACK.md
+                passed_test_ids: ["x.Y.z"]
+                files: []
+            """)
+            (root / "status.yml").write_text(_ledger(p0, current_phase="K0-K1"), encoding="utf-8")
+            strict = status_verify.verify(root / "status.yml", root, run_tests=False, strict=True)
+            self.assertTrue(any("ancestor" in e for e in strict),
+                            f"strict must reject a non-ancestor commit, got: {strict}")
+            # the object DOES exist, so the pre-existing object-existence check does NOT fire:
+            self.assertFalse(any("does NOT resolve" in e for e in strict))
+
+    def test_missing_git_unknown_blocks_in_strict(self):
+        """SHOULD-FIX #5(c): a MISSING git is unknown-blocks in strict mode (fail-closed), not
+        fail-open. Simulated by forcing the offline resolver to report 'git unavailable' (None)."""
+        original = status_verify._commit_resolvable
+        status_verify._commit_resolvable = lambda commit, repo_root: None
+        try:
+            with TemporaryDirectory() as d:
+                root = Path(d)
+                (root / "RESUME.md").write_text("r", encoding="utf-8")
+                (root / "ROLLBACK.md").write_text("r", encoding="utf-8")
+                p0 = textwrap.dedent("""\
+                  - id: P0
+                    title: "P0"
+                    status: done
+                    pr: "https://example.com/o/r/pull/1"
+                    commit: "0123456789012345678901234567890123456789"
+                    current_gate: "no-git"
+                    resume_pointer: RESUME.md
+                    rollback_path: ROLLBACK.md
+                    passed_test_ids: ["x.Y.z"]
+                    files: []
+                """)
+                (root / "status.yml").write_text(_ledger(p0, current_phase="K0-K1"), encoding="utf-8")
+                strict = status_verify.verify(root / "status.yml", root, run_tests=False, strict=True)
+                self.assertTrue(any("git is unavailable" in e for e in strict),
+                                f"strict must unknown-block on missing git, got: {strict}")
+                loose = status_verify.verify(root / "status.yml", root, run_tests=False, strict=False)
+                self.assertFalse(any("git is unavailable" in e for e in loose),
+                                 "non-strict must stay fail-open on missing git")
+        finally:
+            status_verify._commit_resolvable = original
 
     def test_current_phase_must_match_first_non_done(self):
         """MINOR-8 regression: a stale current_phase (pointing at a done phase) must FAIL."""

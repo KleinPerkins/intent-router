@@ -7,7 +7,13 @@
 ## Current position
 
 - **Last completed phase:** R-core — deterministic, executionless engine (L0–L2 + L5) + read-only
-  surface ✅ (PR [#2](https://github.com/KleinPerkins/intent-router/pull/2), commit `be7bd0d`).
+  surface ✅. The phase **merged to `main` via PR [#2](https://github.com/KleinPerkins/intent-router/pull/2)**
+  (commit `7ef9bbc`). A review-swarm **fix pass** (honesty/drift/denylist) is carried by
+  **PR [#3](https://github.com/KleinPerkins/intent-router/pull/3)** (commit `bfe270b`, `r-core → main`,
+  **pending operator merge**): case-insensitive + full-field egress scan, catalog-verify floor bound
+  to the frozen contract, AST-based no-execution denylist, CR1 rebound to the whole-surface test,
+  `status_verify --strict` (PR resolve + commit ancestry + git-missing fail-closed), and
+  honest-confidence de-escalation on competing destructive+read signals.
 - **Next phase:** **A0** — AWA consumer proof (real catalog + operator loop + `intent-proposal/v1`
   freeze + contamination/off-switch proofs + real-PM trial).
 - **Critical path:** P0 → R-core → **A0**, with the consumer kernel-safety lanes (AWA K0/K1/K2) in

@@ -17,11 +17,13 @@ from intent_router import cli
 
 _CLI_SRC = Path(cli.__file__).resolve()
 
-# Execution primitives that must NEVER appear in the router surface.
+# Execution primitives that must NEVER appear in the router surface. Kept in LOCKSTEP with
+# tests/test_no_execution.py::_FORBIDDEN_EXEC (asserted by test_forbidden_exec_parity_with_cli_stub).
 _FORBIDDEN_EXEC = [
-    "subprocess", "os.system", "os.popen", "os.exec", "Popen",
-    "check_call", "check_output", "pty.spawn", "commands.getoutput",
-    "eval(", "exec(", "__import__(",
+    "subprocess", "os.system", "os.popen", "os.exec", "os.spawn", "os.posix_spawn", "os.fork",
+    "Popen", "check_call", "check_output", "pty.spawn", "pty.fork", "pty.openpty",
+    "commands.getoutput", "importlib", "ctypes", "runpy",
+    "eval(", "exec(", "compile(", "__import__(",
 ]
 
 

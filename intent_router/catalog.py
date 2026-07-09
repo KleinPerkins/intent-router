@@ -2,19 +2,23 @@
 
 The catalog is consumer-authored and lives in the CONSUMER's source tree (ARCHITECTURE.md); the
 router only ever reads it. `contracts/intent-catalog.v1.json` freezes the per-VERB required-key
-floor + enum floors; this module additionally defines the CATALOG FILE wrapper shape (a list of verb
-entries under a `verbs` array — the wrapper is an R-core implementation choice, not a frozen contract
-field, so it stays free to evolve without touching the frozen floor) and the validator `intent
-catalog-verify` runs.
+floor + enum floors — and this module LOADS that floor/those enums straight from the contract JSON
+(`_load_contract_floor`), so the validator can never silently drift from the freeze. It additionally
+defines the CATALOG FILE wrapper shape (a list of verb entries under a `verbs` array — the wrapper
+is an R-core implementation choice, not a frozen contract field, so it stays free to evolve without
+touching the frozen floor) and the validator `intent catalog-verify` runs.
 
 `catalog-verify` must catch (R-core deliverable, each proven by an adversarial test):
   1. a bad `safety_class` (not in the frozen enum),
   2. a missing `param_schema` (the required key itself, or a malformed nested param entry),
   3. an unsafe `tool_path` (not in the frozen enum — a consumer cannot declare an escape hatch),
   4. leaked host-policy literals — a Tier A/B/C banned term (CONSTITUTION.md banned_terms; the same
-     shared tiers the future `egress` phase composes) inside the PM-facing `plain_label` /
-     `consequence_copy` fields. Catalog schema carries those two fields precisely so this is a
-     schema-validation failure, not luck (ARCHITECTURE.md "System-wide operator egress gate").
+     shared tiers the future `egress` phase composes) in ANY PM-emitted / proposal-bound string:
+     `verb`, `plain_label`, `consequence_copy`, `aliases`, `examples`, `start_point_rules` values,
+     and `param_schema[].name` (see `_egress_strings` — every string that reaches a PM-facing
+     surface, the rendered `why[]`, `proposal.start_point`, or `proposal.missing_params`). Matching
+     is case-insensitive for naturally-lowercase terms so a capitalized spelling can't slip through;
+     this makes a leak a schema-validation failure, not luck (ARCHITECTURE.md egress gate).
 
 Scope note: this is a catalog-scoped STRUCTURAL pre-check, not the full CR10 egress gate (that is a
 behavioral test over all seven PM-facing surfaces, deferred to the `egress` phase — see
@@ -34,24 +38,27 @@ SCHEMA = "intent-catalog/v1"
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _CONTRACTS_DIR = _REPO_ROOT / "contracts"
 
-# Mirrors contracts/intent-catalog.v1.json required_keys (the frozen per-verb floor). Kept as a
-# plain dict (not imported from the JSON) so this module has no import-time file dependency beyond
-# the banned-terms lookup; test_contract_freeze.py is the single source of truth for the frozen
-# floor itself, this is just the validator's working copy of the SAME names.
-REQUIRED_VERB_KEYS = (
-    "verb", "aliases", "examples", "param_schema", "preconditions",
-    "safety_class", "tool_path", "start_point_rules", "plain_label", "consequence_copy",
-)
-REQUIRED_PARAM_KEYS = ("name", "type", "required")
-SAFETY_CLASS_ENUM = ("read", "write", "destructive")
-TOOL_PATH_ENUM = ("cli", "mcp", "hook")
-PARAM_TYPE_ENUM = ("string", "int", "number", "bool", "enum", "path", "ref")
-PARAM_SOURCE_ENUM = ("literal", "regex", "enum", "repo-resolver", "llm")
+_CATALOG_CONTRACT = _CONTRACTS_DIR / "intent-catalog.v1.json"
 
-# PM-facing fields scanned for banned-term leaks (ARCHITECTURE.md: these two fields exist precisely
-# so a leak is a schema-validation failure). `aliases`/`examples` are the utterance-matching
-# training corpus, not PM-rendered text, and are intentionally out of this check's scope.
-_EGRESS_SCANNED_FIELDS = ("plain_label", "consequence_copy")
+
+def _load_contract_floor() -> dict:
+    """Load the FROZEN per-verb required-key floor + enum floors straight from
+    `contracts/intent-catalog.v1.json` — the single source of truth. Binding the validator's floor
+    to the contract (rather than hand-copying the key names) is what makes `catalog-verify` and the
+    freeze checker unable to silently DRIFT: dropping/renaming a frozen required key is a freeze
+    failure, and the validator picks up the exact same floor by construction, so the two can never
+    disagree about what a catalog must declare. Read once at import (the contract is a read-only,
+    in-repo JSON)."""
+    return json.loads(_CATALOG_CONTRACT.read_text(encoding="utf-8"))
+
+
+_CONTRACT = _load_contract_floor()
+REQUIRED_VERB_KEYS = tuple(_CONTRACT["required_keys"].keys())
+REQUIRED_PARAM_KEYS = tuple(_CONTRACT["nested"]["param"]["required_keys"].keys())
+SAFETY_CLASS_ENUM = tuple(_CONTRACT["enums"]["safety_class"])
+TOOL_PATH_ENUM = tuple(_CONTRACT["enums"]["tool_path"])
+PARAM_TYPE_ENUM = tuple(_CONTRACT["enums"]["param.type"])
+PARAM_SOURCE_ENUM = tuple(_CONTRACT["enums"]["param.source"])
 
 
 def load_json(path: Path) -> dict:
@@ -88,30 +95,79 @@ def _load_banned_terms() -> frozenset:
     return _banned_terms_cache
 
 
+def _is_case_sensitive_term(term: str) -> bool:
+    """A banned term is matched CASE-SENSITIVELY only when it is a genuinely-ambiguous all-caps
+    acronym — it has uppercase letters and NO lowercase letters (`HEAD`, `PR`, `MCP`). Those would
+    collide with ordinary English if lower-cased (`head`, `pr`), so we match them exactly as
+    declared. Every naturally-lowercase mechanism / git word (`worktree`, `kernel`, `branch`,
+    `merge`, `lease`, `orphan`, ...) is matched CASE-INSENSITIVELY, so a capitalized spelling
+    (`WORKTREE`, `Merge`) can never slip a leak past the gate."""
+    return any(c.isupper() for c in term) and not any(c.islower() for c in term)
+
+
 def _pattern_for(term: str) -> re.Pattern:
     """Word-boundary-anchor a term on whichever side starts/ends alphanumeric; a term like
     `--bundle` cannot take a leading `\\b` (both sides of `-` are non-word), so that side is left
-    unanchored — the term is distinctive enough on its own."""
+    unanchored — the term is distinctive enough on its own. Naturally-lowercase terms compile with
+    IGNORECASE (see `_is_case_sensitive_term`)."""
     cached = _pattern_cache.get(term)
     if cached is not None:
         return cached
     left = r"\b" if term[:1].isalnum() else ""
     right = r"\b" if term[-1:].isalnum() else ""
-    pat = re.compile(left + re.escape(term) + right)
+    flags = 0 if _is_case_sensitive_term(term) else re.IGNORECASE
+    pat = re.compile(left + re.escape(term) + right, flags)
     _pattern_cache[term] = pat
     return pat
 
 
 def find_banned_terms(text: str, banned_terms: frozenset | None = None) -> list[str]:
-    """Return the banned terms literally present in `text` (sorted, deduped). Case-SENSITIVE,
-    word/phrase-bounded matching: precise over exhaustive, since common tokens like `HEAD` or `PR`
-    would otherwise collide constantly with ordinary English if matched case-insensitively. The
-    behavioral, exhaustive egress gate lands at the `egress` phase; this is a structural pre-check."""
+    """Return the banned terms present in `text` (sorted, deduped), word/phrase-bounded. Naturally-
+    lowercase Tier A/B/C terms match case-INsensitively (so `WORKTREE`/`Merge` are caught); the
+    all-caps acronyms `HEAD`/`PR`/`MCP` stay case-SENSITIVE so they don't collide with ordinary
+    English (`head`, `print`). The behavioral, exhaustive egress gate lands at the `egress` phase;
+    this is the structural pre-check that makes a leak a validation failure, not luck."""
     if not text:
         return []
     terms = banned_terms if banned_terms is not None else _load_banned_terms()
     hits = {term for term in terms if _pattern_for(term).search(text)}
     return sorted(hits)
+
+
+def _egress_strings(entry: dict):
+    """Yield `(field_label, text)` for EVERY PM-emitted / proposal-bound string in a verb entry —
+    the complete set of strings that can reach a PM-facing surface or the `intent-proposal/v1`
+    envelope, so the egress scan covers all of them (not just the two copy fields):
+      - `verb`               -> proposal.verb + the `verb_name` signal in why[]
+      - `plain_label`/`consequence_copy` -> the PM-facing copy fields (frozen for this reason)
+      - `aliases`/`examples` -> the matched tokens rendered into why[] on CLI + MCP
+      - `start_point_rules` values -> proposal.start_point
+      - `param_schema[].name`      -> proposal.missing_params
+    """
+    for f in ("verb", "plain_label", "consequence_copy"):
+        v = entry.get(f)
+        if isinstance(v, str):
+            yield (f, v)
+    for f in ("aliases", "examples"):
+        seq = entry.get(f)
+        if isinstance(seq, list):
+            for i, item in enumerate(seq):
+                if isinstance(item, str):
+                    yield (f"{f}[{i}]", item)
+    rules = entry.get("start_point_rules")
+    if isinstance(rules, dict):
+        for k, v in rules.items():
+            if isinstance(v, str):
+                yield (f"start_point_rules.{k}", v)
+            elif isinstance(v, list):
+                for i, item in enumerate(v):
+                    if isinstance(item, str):
+                        yield (f"start_point_rules.{k}[{i}]", item)
+    ps = entry.get("param_schema")
+    if isinstance(ps, list):
+        for i, p in enumerate(ps):
+            if isinstance(p, dict) and isinstance(p.get("name"), str):
+                yield (f"param_schema[{i}].name", p["name"])
 
 
 def _type_name(value: Any) -> str:
@@ -197,17 +253,16 @@ def validate_verb_entry(entry: Any, idx: int) -> list[str]:
     # (else: absence already reported by the missing-required-key check above, which names
     # 'param_schema' explicitly — deliverable class 2.)
 
-    # 4. leaked host-policy literals in the PM-facing fields
+    # 4. leaked host-policy literals in ANY PM-emitted / proposal-bound string (not just the two
+    # copy fields — see `_egress_strings`): a leak in an alias, example, start_point_rules value, or
+    # param name reaches why[]/start_point/missing_params just as surely as one in plain_label.
     banned = _load_banned_terms()
-    for field in _EGRESS_SCANNED_FIELDS:
-        val = entry.get(field)
-        if not isinstance(val, str):
-            continue
+    for field_label, val in _egress_strings(entry):
         hits = find_banned_terms(val, banned)
         if hits:
             errors.append(
-                f"verb[{idx}] ({label}).{field}: leaked host-policy literal(s) {hits} — PM-facing "
-                f"copy must be jargon-free (banned_terms tiers A/B/C)"
+                f"verb[{idx}] ({label}).{field_label}: leaked host-policy literal(s) {hits} — "
+                f"PM-facing / proposal-bound text must be jargon-free (banned_terms tiers A/B/C)"
             )
 
     # Shape checks on other required-but-not-yet-covered keys (aliases/examples/preconditions must

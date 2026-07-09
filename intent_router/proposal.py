@@ -31,7 +31,12 @@ _NO_MATCH_START_POINT = "unknown"
 # independently-calibrated estimate. STRONG_MIN + STRONG_MARGIN is the score at which a match is
 # unambiguously "strong" (verdict.py); scores at/above it saturate to 1.0, everything below scales
 # linearly. Deriving confidence from verdict's OWN thresholds means the two fields can never
-# silently disagree about what "confident" means.
+# silently disagree about what "confident" means. The ONE case where `confidence` (raw match
+# strength to the selected verb) can read higher than the `verdict` band is an engine-level
+# honest-confidence DE-ESCALATION (engine._honest_confidence): a strong read that competes with a
+# destructive verb is downgraded to `weak`. That divergence is never silent — it is logged in
+# `why[]` ("deescalated:...") and, crucially, `requires_confirmation` (not `confidence`) is the
+# operative safety bool a consumer's kernel-facing loop relies on, and it flips True on de-escalation.
 _CONFIDENCE_SATURATION = STRONG_MIN + STRONG_MARGIN
 
 
@@ -68,13 +73,17 @@ def _start_point_for(verb_entry: dict | None) -> str:
     return _NO_MATCH_START_POINT
 
 
-def build_proposal(consumer: str, verdict: str, top: dict | None, verb_entry: dict | None) -> dict:
+def build_proposal(consumer: str, verdict: str, top: dict | None, verb_entry: dict | None,
+                   extra_why: list | None = None) -> dict:
     """Serialize ONE `intent-proposal/v1` envelope.
 
     `top` is L1's top-scoring candidate (`candidates.score_verb`'s return shape, or None); `verb_
     entry` is that candidate's full catalog entry (or None). L5 reads `safety_class`/`tool_path`/
     `param_schema`/`start_point_rules` from `verb_entry`, never from `top`'s score/why alone —
     L1 does not interpret those fields, so L5 is the first (and only) layer that does.
+
+    `extra_why` is an optional list of engine-level breadcrumbs (e.g. the honest-confidence
+    de-escalation reason) appended to `why[]` so a de-escalation is auditable on every surface.
     """
     if not top or not verb_entry:
         return {
@@ -98,7 +107,7 @@ def build_proposal(consumer: str, verdict: str, top: dict | None, verb_entry: di
     # any write/destructive verb, or any unfilled required slot always asks — this is the one bool
     # a consumer's kernel-facing loop can rely on to mean "truly nothing to double-check."
     requires_confirmation = bool(missing) or not (verdict == "strong" and safety_class == "read")
-    why = [f"verdict:{verdict}"] + list(top.get("why") or ["no-signal"])
+    why = [f"verdict:{verdict}"] + list(extra_why or []) + list(top.get("why") or ["no-signal"])
 
     return {
         "consumer": consumer,

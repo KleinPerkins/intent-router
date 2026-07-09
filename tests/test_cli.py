@@ -6,6 +6,7 @@ verify returns a nonzero exit on a bad catalog so it is usable as a gate.
 
 from __future__ import annotations
 
+import copy
 import io
 import json
 import unittest
@@ -106,6 +107,127 @@ class TestCatalogVerify(unittest.TestCase):
         report = json.loads(out)
         self.assertFalse(report["ok"])
         self.assertTrue(report["errors"])
+
+
+# A single KNOWN-VALID verb (a deep-copyable stand-in — jargon-free copy, valid enums, one required
+# param). Each single-defect test below injects EXACTLY ONE abuse into a fresh deep copy so a
+# regression in one checker class turns exactly one test RED and cannot be masked by a co-occurring
+# defect (the pre-existing bad-catalog tests bundle several defects at once and cannot isolate).
+_VALID_VERB = {
+    "verb": "protect",
+    "aliases": ["protect", "keep this safe"],
+    "examples": ["put this work somewhere safe"],
+    "param_schema": [
+        {"name": "target_path", "type": "path", "required": True, "source": "repo-resolver"}
+    ],
+    "preconditions": ["target_path is a project folder"],
+    "safety_class": "write",
+    "tool_path": "mcp",
+    "start_point_rules": {"default": "current"},
+    "plain_label": "Start protecting this work",
+    "consequence_copy": "Creates a separate safe copy so your original files stay untouched.",
+}
+
+
+def _catalog_with(verb: dict) -> dict:
+    return {"schema": "intent-catalog/v1", "consumer": "awa", "verbs": [verb]}
+
+
+def _verify_catalog(catalog: dict):
+    """Write `catalog` to a temp file and drive the real `intent catalog-verify --json` CLI. Returns
+    (rc, report). E2E: exercises the shipped checker through the CLI, not an in-proc re-impl."""
+    with TemporaryDirectory() as d:
+        p = Path(d) / "cat.json"
+        p.write_text(json.dumps(catalog), encoding="utf-8")
+        rc, out, _ = _run(["catalog-verify", str(p), "--json"])
+    return rc, json.loads(out)
+
+
+class TestCatalogVerifySingleDefect(unittest.TestCase):
+    """One abuse class per test — each starts from `_VALID_VERB` and injects a single defect. Every
+    test asserts (a) nonzero exit, (b) the expected error class is reported, and (c) it is the ONLY
+    error (exactly-one isolation), so a regressed class is unambiguously attributable."""
+
+    def test_base_is_valid_guard(self):
+        # Guard: the single-defect base must itself PASS, or the isolation below would be vacuous.
+        rc, report = _verify_catalog(_catalog_with(copy.deepcopy(_VALID_VERB)))
+        self.assertEqual(rc, 0, report)
+        self.assertTrue(report["ok"])
+        self.assertEqual(report["errors"], [])
+
+    def _assert_single(self, report, marker: str):
+        self.assertFalse(report["ok"])
+        self.assertEqual(len(report["errors"]), 1,
+                         f"expected exactly ONE (isolated) error, got: {report['errors']}")
+        self.assertIn(marker, report["errors"][0])
+
+    def test_only_bad_safety_class(self):
+        v = copy.deepcopy(_VALID_VERB)
+        v["safety_class"] = "nope"
+        rc, report = _verify_catalog(_catalog_with(v))
+        self.assertEqual(rc, 1)
+        self._assert_single(report, "bad safety_class")
+
+    def test_only_unsafe_tool_path(self):
+        v = copy.deepcopy(_VALID_VERB)
+        v["tool_path"] = "shell"  # not in the frozen {cli,mcp,hook} allowlist
+        rc, report = _verify_catalog(_catalog_with(v))
+        self.assertEqual(rc, 1)
+        self._assert_single(report, "unsafe tool_path")
+
+    def test_only_missing_required_param_key(self):
+        v = copy.deepcopy(_VALID_VERB)
+        v["param_schema"][0].pop("required")  # required param-floor key
+        rc, report = _verify_catalog(_catalog_with(v))
+        self.assertEqual(rc, 1)
+        self._assert_single(report, "param_schema[0]: missing required key(s)")
+        self.assertIn("required", report["errors"][0])
+
+    def test_only_bad_param_type(self):
+        v = copy.deepcopy(_VALID_VERB)
+        v["param_schema"][0]["type"] = "nope"
+        rc, report = _verify_catalog(_catalog_with(v))
+        self.assertEqual(rc, 1)
+        self._assert_single(report, "bad type")
+
+    def test_only_missing_required_verb_key(self):
+        # The exact drift the reviewer proved: dropping a frozen-required verb key. Because the
+        # validator's floor is LOADED from contracts/intent-catalog.v1.json (fix #2), this is a
+        # catalog-verify failure — no hand-copied constant to fall out of sync.
+        v = copy.deepcopy(_VALID_VERB)
+        v.pop("preconditions")
+        rc, report = _verify_catalog(_catalog_with(v))
+        self.assertEqual(rc, 1)
+        self._assert_single(report, "missing required key(s)")
+        self.assertIn("preconditions", report["errors"][0])
+
+    def test_only_banned_literal_capitalized_plain_label(self):
+        # fix #1 (case-insensitivity) via the CLI: a CAPITALIZED host term must be caught.
+        v = copy.deepcopy(_VALID_VERB)
+        v["plain_label"] = "Protect your WORKTREE"
+        rc, report = _verify_catalog(_catalog_with(v))
+        self.assertEqual(rc, 1)
+        self._assert_single(report, "leaked host-policy literal")
+        self.assertIn("plain_label", report["errors"][0])
+
+    def test_only_banned_literal_in_start_point_rules(self):
+        # fix #1 (field coverage) via the CLI: start_point_rules values flow into proposal.start_point
+        # and MUST be scanned. ("detached HEAD worktree" leaks both HEAD and worktree.)
+        v = copy.deepcopy(_VALID_VERB)
+        v["start_point_rules"] = {"default": "detached HEAD worktree"}
+        rc, report = _verify_catalog(_catalog_with(v))
+        self.assertEqual(rc, 1)
+        self._assert_single(report, "leaked host-policy literal")
+        self.assertIn("start_point_rules.default", report["errors"][0])
+
+    def test_only_banned_literal_in_alias(self):
+        # fix #1 (field coverage) via the CLI: aliases render into why[] on CLI + MCP.
+        v = copy.deepcopy(_VALID_VERB)
+        v["aliases"] = ["protect", "orphan branch"]
+        rc, report = _verify_catalog(_catalog_with(v))
+        self.assertEqual(rc, 1)
+        self._assert_single(report, "leaked host-policy literal")
+        self.assertIn("aliases[1]", report["errors"][0])
 
 
 class TestDoctor(unittest.TestCase):
