@@ -1,0 +1,49 @@
+# .gitignore — allow-list-friendly ignore set for the intent-router capability.
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+.venv/
+venv/
+
+# OS / editor
+.DS_Store
+
+# intent-router runtime state must never be tracked (it lives under XDG state dirs, but guard anyway).
+# Truth is event-sourced JSONL + derived JSON projections under ${XDG_STATE_HOME:-~/.local/state}/intent-router.
+.intent-router/
+*.local.jsonl
+
+# BEGIN KleinPerkins/dev baseline (managed by KleinPerkins/dev; do not hand-edit — see _ops/baseline/README.md in KleinPerkins/dev)
+# secrets / credentials — never commit these
+.env
+.env.*
+*.env
+!.env.example
+!.env.sample
+!.env.template
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.kdbx
+id_rsa*
+id_dsa*
+id_ed25519*
+.netrc
+.pgpass
+credentials
+credentials.*
+service-account*.json
+# OS / editor runtime cruft
+.DS_Store
+._*
+*.swp
+# END KleinPerkins/dev baseline
