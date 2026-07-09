@@ -1,0 +1,54 @@
+{
+  "contract": "intent-catalog",
+  "schema": "intent-catalog/v1",
+  "version": 1,
+  "status": "frozen",
+  "frozen": "2026-07-08",
+  "freeze_exempt": false,
+  "owner": "consumer (lives in the consumer's source tree; read-only to the router)",
+  "rationale": "The catalog is the consumer-authored description of every verb the router may propose. It is BEHAVIOR-frozen: the required-key floor + the schema string + the enum floors below are the interface a consumer authors against and the router reads. Additive OPTIONAL keys are allowed WITHIN v1 (a new per-verb or per-param field). Removing/renaming/retyping a required key, or changing the `intent-catalog/v1` string, is a breaking change requiring intent-catalog/v2.json. `plain_label` + `consequence_copy` are REQUIRED so a jargon leak on a PM-facing surface is a schema-validation failure, not luck (system-wide egress gate). `safety_class` is the safety-relevant floor and `source` on a param distinguishes deterministic extraction from LLM inference (load-bearing for the destructive-param rule, CONSTITUTION CR9).",
+  "required_keys": {
+    "verb": "string",
+    "aliases": "array",
+    "examples": "array",
+    "param_schema": "array<param>",
+    "preconditions": "array",
+    "safety_class": "enum",
+    "tool_path": "enum",
+    "start_point_rules": "object",
+    "plain_label": "string",
+    "consequence_copy": "string"
+  },
+  "optional_keys": {},
+  "nested": {
+    "param": {
+      "description": "one entry of param_schema[]",
+      "required_keys": {
+        "name": "string",
+        "type": "enum",
+        "required": "bool"
+      },
+      "optional_keys": {
+        "enum": "array",
+        "source": "enum"
+      }
+    }
+  },
+  "enums": {
+    "safety_class": ["read", "write", "destructive"],
+    "tool_path": ["cli", "mcp", "hook"],
+    "param.type": ["string", "int", "number", "bool", "enum", "path", "ref"],
+    "param.source": ["literal", "regex", "enum", "repo-resolver", "llm"]
+  },
+  "freeze_strings": ["intent-catalog/v1"],
+  "deferred_additions": {
+    "R2": [
+      {"key": "extractor", "type": "enum(deterministic|llm)", "target": "nested.param.optional", "note": "L4 typed param extraction records HOW a slot was filled. Deterministic (regex/enum/repo-resolver) is required for any slot feeding a destructive verb; an llm extractor on a destructive slot forces confirm_literal (CR9). Additive OPTIONAL per-param key."},
+      {"key": "confirm_literal", "type": "bool", "target": "nested.param.optional", "note": "When true, the operator must confirm the literal extracted value before a destructive verb runs. Additive OPTIONAL per-param key."}
+    ],
+    "R-surface": [
+      {"key": "deprecated", "type": "bool", "target": "top.optional", "note": "Lets a consumer retire a verb from proposal without deleting the catalog entry. Additive OPTIONAL per-verb key."}
+    ]
+  },
+  "additive_note": "Egress: plain_label + consequence_copy are FROZEN into v1 from day one, so the egress gate is enforced by catalog validation for every consumer, not bolted on later. Enum floors only EXTEND (a new safety_class/tool_path/param.type value is additive; an existing value is never removed). All deferred_additions above are OPTIONAL keys or enum extensions — none removes, renames, or retypes a required key."
+}

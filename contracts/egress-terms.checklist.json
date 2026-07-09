@@ -1,0 +1,35 @@
+{
+  "schema": "intent-egress-terms/v1",
+  "version": 1,
+  "status": "reference-checklist",
+  "provenance": "AWA v8 plan — 'System-Wide Operator Egress Gate' section. Pinned VERBATIM in P0 so no banned term silently drops between the plan and the consumer's egress config before the egress-phase test is built.",
+  "rationale": "The FULL plan inventory the future `egress`-phase test (CR10) will CONSUME. The SHARED contract intent-constitution.v1.json.banned_terms deliberately holds only the generic Tier A/B subset (zero-link / shared-first: the shared router names no single consumer's tokens); the concrete Tier C on-disk leakers are FIRST-CONSUMER (AWA) contributed and pinned here. This file is a reference checklist, NOT a frozen contract floor (it is not a *.v1 contract and is exempt from the freeze-lock). The egress test composes tier_a + tier_b + every consumer's tier_c and asserts ZERO occurrences across the seven PM-facing surfaces, each expressing honest confidence (what was / was not checked) — never a bare green implying an unauditable safety guarantee.",
+  "surfaces": [
+    "chat loop",
+    "guard block message",
+    "dashboard canvas",
+    "MCP approval labels",
+    "discard/save confirmation",
+    "doctor/status",
+    "detection receipts/timeline"
+  ],
+  "tier_a_mechanism": [
+    "lease", "worktree", "common-dir", "kernel", "engine", "guard", "mode", "disposition",
+    "heartbeat", "archive-protect", "bundle", "quarantine ref", "MCP", "hook", "receipt", "flags"
+  ],
+  "tier_b_git_workflow": [
+    "branch", "commit", "push", "pull", "merge", "rebase", "PR", "main", "origin", "detached",
+    "dirty", "ahead", "behind", "orphan", "HEAD"
+  ],
+  "tier_c_consumer_concrete": {
+    "note": "Concrete on-disk leakers contributed by the FIRST consumer (AWA). Other consumers add their own tier_c list; the shared tiers above are never shrunk.",
+    "awa": [
+      "awa_mode_set", "awa_guard_shell", "awa_lease_read",
+      "--bundle", "--force", "--path",
+      "mutating command", "primary checkout", "policy-check: OK", "WAL mode", "Orphan AWA branches"
+    ]
+  },
+  "honest_confidence_note": "Beyond zero-banned-terms, each surface must state what was and was not checked (honest confidence). A bare green check that implies an unauditable safety guarantee is itself a CR10 violation, tested at the egress phase.",
+  "freeze_exempt": true,
+  "additive_note": "Tiers only EXTEND (a new banned term is additive; an existing one is never removed). Adding a consumer to tier_c_consumer_concrete is additive. This checklist grows; it never shrinks."
+}

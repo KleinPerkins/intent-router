@@ -1,0 +1,39 @@
+{
+  "contract": "intent-feedback",
+  "schema": "intent-feedback/v1",
+  "version": 1,
+  "status": "frozen",
+  "frozen": "2026-07-08",
+  "freeze_exempt": false,
+  "owner": "append-only log (router-private JSONL; the event-sourced TRUTH; machine-local, never published)",
+  "rationale": "The feedback log is the event-sourced TRUTH from which intent-map.json is a derived projection. It is frozen NOW, in P0, because C0 must not write event #1 against an unfrozen schema: a later reshape would make accumulated learning unreplayable (silent loss). Each line is one append-only JSON object. `operator_choice` is the five-outcome operator model and `outcome` is the verified real-world result (verify-real-outcome, not the router's guess). Both enums EXTEND additively (LOCKED). Additive OPTIONAL keys allowed within v1.",
+  "required_keys": {
+    "ts": "string",
+    "consumer": "string",
+    "catalog_version": "string",
+    "utterance": "string",
+    "proposal": "object",
+    "operator_choice": "enum",
+    "verdict": "enum",
+    "confidence": "number",
+    "outcome": "enum",
+    "session_id": "string"
+  },
+  "optional_keys": {
+    "correction": "object|null"
+  },
+  "nested": {},
+  "enums": {
+    "operator_choice": ["accept", "correct", "reject", "clarify", "abort"],
+    "outcome": ["success", "refused", "failed", "noop", "unknown"],
+    "verdict": ["strong", "weak", "none"]
+  },
+  "freeze_strings": ["intent-feedback/v1"],
+  "deferred_additions": {
+    "C1": [
+      {"key": "redacted", "type": "bool", "target": "top.optional", "note": "Marks a line whose utterance/correction was redacted before persistence (consented/redacted transcript seeding). Additive OPTIONAL key."},
+      {"key": "consent_ref", "type": "string|null", "target": "top.optional", "note": "Reference to the explicit, per-run, revocable consent that authorized seeding this line from a transcript. Additive OPTIONAL key."}
+    ]
+  },
+  "additive_note": "FROZEN BEFORE C0 (the hard timing rule): the required-key floor above and the schema string are immutable-within-v1 so every event C0/C1 ever writes replays deterministically. The five-outcome operator_choice enum and the outcome enum only EXTEND (a new operator behavior or outcome value is additive; existing values are never removed or renamed). `correction` is OPTIONAL from v1 so a correcting event needs no schema change. All deferred_additions are OPTIONAL keys."
+}

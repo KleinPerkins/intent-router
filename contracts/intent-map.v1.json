@@ -1,0 +1,40 @@
+{
+  "contract": "intent-map",
+  "schema": "intent-map/v1",
+  "version": 1,
+  "status": "frozen",
+  "frozen": "2026-07-08",
+  "freeze_exempt": false,
+  "owner": "store (router-private; a derived projection of the event log, machine-local, never published to a shared repo)",
+  "rationale": "ONE store schema for learned intent — NOT a separate phrasebook-vs-store pair (LOCKED decision: avoids a C0->C1 migration). A single `source` field (seed|manual|feedback) partitions provenance: C0 activates entries with source in {seed, manual}; C1 flips `feedback` active. Because all three source values and every weighting/outcome field are frozen in v1 NOW, no schema change is needed to move from reviewable (C0) to automatic (C1) calibration. Frozen alongside intent-feedback so the derived projection and its truth log agree from the first write. Additive OPTIONAL keys allowed within v1.",
+  "required_keys": {
+    "intent_key": "string",
+    "utterance_examples": "array",
+    "target_verb": "string",
+    "param_bindings": "object",
+    "weight": "number",
+    "confidence": "number",
+    "hit_count": "int",
+    "last_used": "string|null",
+    "outcome_stats": "object",
+    "source": "enum",
+    "version": "int"
+  },
+  "optional_keys": {},
+  "nested": {},
+  "enums": {
+    "source": ["seed", "manual", "feedback"]
+  },
+  "freeze_strings": ["intent-map/v1"],
+  "deferred_additions": {
+    "C1": [
+      {"key": "decay_half_life", "type": "number", "target": "top.optional", "note": "Recency exponential-decay half-life for deterministic weighting. Additive OPTIONAL key; absent = no decay (C0 behavior)."},
+      {"key": "superseded_by", "type": "string|null", "target": "top.optional", "note": "intent_key of the entry that supersedes this one on an intent_key conflict (corrections supersede). Additive OPTIONAL key."},
+      {"key": "last_calibrated", "type": "string|null", "target": "top.optional", "note": "Timestamp of the last automatic calibration pass that touched this entry. Additive OPTIONAL key."}
+    ],
+    "R-resilience": [
+      {"key": "behavior_hash", "type": "string", "target": "top.optional", "note": "Drift-detection hash of the normalized entry, used to detect corruption and trigger self-repair. Additive OPTIONAL key."}
+    ]
+  },
+  "additive_note": "C0 uses {intent_key, utterance_examples, target_verb, param_bindings, source, version} with source in {seed, manual}; weight/confidence/hit_count/last_used/outcome_stats are present in v1 for C1 to populate WITHOUT a schema change. The `source` enum already carries `feedback`, so enabling automatic calibration (C1) is an activation, not a migration. All deferred_additions are OPTIONAL keys; the source enum only ever EXTENDS."
+}

@@ -1,0 +1,44 @@
+{
+  "contract": "intent-proposal",
+  "schema": "intent-proposal/v1",
+  "version": 1,
+  "status": "provisional",
+  "frozen": null,
+  "freeze_exempt": true,
+  "freeze_exempt_reason": "HIGHEST re-architecture risk: the router<->consumer envelope is only proven correct once a real consumer (AWA, phase A0) exercises it against a hand-written fixture. Freezing it in P0 before that exercise would likely force a breaking v2. Per the plan's FREEZE TIMING, intent-proposal/v1 is DEFINED in P0 but its envelope freeze is DEFERRED to A0. The contract-freeze checker MUST skip the freeze-lock for this contract (status=provisional, freeze_exempt=true) while still asserting it is present and well-formed. A0 flips status to `frozen` and sets `frozen` to a date after the fixture passes.",
+  "owner": "interface (router emits; consumer reads; never persisted to a shared repo)",
+  "rationale": "The proposal is the ONLY thing the router hands back: which verb, which params, from what start point, how safe, how confident, the verdict, the plain reasons, what is missing, and whether the operator must confirm. It is executionless by construction (there is no field that runs anything). The verdict is the safety-relevant output (L2). This shape is DEFINED so R-core can serialize against it, but PROVISIONAL until A0.",
+  "required_keys": {
+    "consumer": "string",
+    "verb": "string",
+    "params": "object",
+    "start_point": "string",
+    "safety_class": "enum",
+    "tool_path": "enum",
+    "confidence": "number",
+    "verdict": "enum",
+    "why": "array",
+    "missing_params": "array",
+    "requires_confirmation": "bool"
+  },
+  "optional_keys": {},
+  "nested": {},
+  "enums": {
+    "safety_class": ["read", "write", "destructive"],
+    "tool_path": ["cli", "mcp", "hook"],
+    "verdict": ["strong", "weak", "none"]
+  },
+  "freeze_strings": ["intent-proposal/v1"],
+  "deferred_additions": {
+    "A0": [
+      {"key": "catalog_version", "type": "string", "target": "top.optional", "note": "Pins which catalog version produced the proposal (seam tests in the consumer repo assert this). Additive OPTIONAL key added when the envelope is frozen."}
+    ],
+    "R2": [
+      {"key": "rerank_source", "type": "enum(deterministic|llm)", "target": "top.optional", "note": "Records whether L3 LLM rerank participated; deterministic floor (L0-L2+L5) still produces a valid proposal with this absent. Additive OPTIONAL key."}
+    ]
+  },
+  "excluded_by_design": {
+    "consequence_descriptor": "DELIBERATELY NOT a proposal field (KI4 hygiene). The kernel consequence descriptor {destroys_unshared_work, irreversible, affects_shared_ref} that drives consequence-confirmation copy is read by the consumer FROM THE KERNEL DISPOSITION at confirm time — never relayed through the router. Putting it in the router-emitted proposal would let a router artifact appear to source a safety-relevant confirmation (KI4 says confirmations are kernel-sourced). The A0 seam test MUST assert confirmation copy derives from the kernel disposition and IGNORES any router-relayed field even if present. The plan's proposal schema does not list it; keeping it out is cheap now while proposal is provisional."
+  },
+  "additive_note": "PROVISIONAL — NOT freeze-locked in P0. Once A0 freezes the envelope, the required-key floor above becomes immutable-within-v1 and the enum floors only EXTEND. The deferred_additions above are the anticipated A0/R2 fields and are all OPTIONAL/enum-extension (additive); recording them now is the additive-compatibility proof for the proposal envelope even though the envelope itself is not yet frozen. NOTE (KI4): the kernel consequence_descriptor is intentionally EXCLUDED from this envelope (see excluded_by_design) — the consumer reads it from the kernel disposition at confirm time, not from the router."
+}

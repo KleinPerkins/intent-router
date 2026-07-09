@@ -1,0 +1,134 @@
+schema: intent-router-status/v1
+generated: "2026-07-08"
+plan: "AWA v8 — Intent-Router Full-System Architecture"
+current_phase: R-core
+# Machine-checked ledger. `make status-verify` recomputes every `done` claim against disk + tests:
+#   - referenced files must exist; passed_test_ids must EXIST and PASS;
+#   - a `done` phase must carry non-empty evidence: >=1 passed_test_id AND a `pr` AND a `commit`
+#     that RESOLVES offline (git cat-file -e) — an empty-evidence or fake-SHA `done` FAILS;
+#   - `current_phase` must equal the first non-done ROUTER phase (phases with track=consumer-kernel
+#     are AWA-repo lanes that run in parallel and gate "proven", not the router's next action).
+# The ledger CANNOT lie. List/object values are INLINE JSON so parsing is stdlib-only and unambiguous.
+phases:
+  - id: P0
+    title: "Architecture & Contracts Freeze"
+    status: done
+    pr: "https://github.com/KleinPerkins/intent-router/pull/1"
+    commit: "0e2f0d7880164e88a22f8126980de4816ea785f5"
+    current_gate: "P0 exit criteria met — durable artifacts frozen; no routing logic"
+    resume_pointer: RESUME.md
+    rollback_path: ROLLBACK.md
+    passed_test_ids: ["tests.test_contract_freeze.TestContractFreeze.test_freeze_checker_passes", "tests.test_additive_compat.TestAdditiveCompat.test_all_deferred_phases_additive", "tests.test_zero_link.TestZeroLink.test_no_forbidden_literals_in_tracked_surface", "tests.test_constitution.TestConstitution.test_constitution_wellformed", "tests.test_cli_stub.TestCliStub.test_no_execution_path", "tests.test_status_verify.TestStatusVerify.test_lying_ledger_fails"]
+    files: ["ARCHITECTURE.md", "CONSTITUTION.md", "RESUME.md", "ROLLBACK.md", "meta.yml", "install.sh", "checks/intent-contract-freeze.sh", "contracts/intent-catalog.v1.json", "contracts/intent-map.v1.json", "contracts/intent-proposal.v1.json", "contracts/intent-feedback.v1.json", "contracts/intent-constitution.v1.json"]
+  - id: K0-K1
+    title: "Kernel safety (AWA lanes, independent, merges first; holds router-off)"
+    status: pending
+    track: consumer-kernel
+    pr: ""
+    commit: ""
+    current_gate: "entry: P0 contracts frozen. AWA repo work — clean_receipt/v1 + active_root/v1 + canonical disposition"
+    resume_pointer: RESUME.md
+    rollback_path: ROLLBACK.md
+    passed_test_ids: []
+    files: []
+  - id: K2
+    title: "Engine observability (non-load-bearing, AWA repo)"
+    status: pending
+    track: consumer-kernel
+    pr: ""
+    commit: ""
+    current_gate: "entry: K0/K1 merged. Fold receipts into timeline; protected archive; drift detection"
+    resume_pointer: RESUME.md
+    rollback_path: ROLLBACK.md
+    passed_test_ids: []
+    files: []
+  - id: R-core
+    title: "Deterministic executionless engine L0-L2+L5 + read-only surface"
+    status: pending
+    pr: ""
+    commit: ""
+    current_gate: "entry: P0 frozen. Build normalize/candidates/verdict/why/proposal; read-only CLI+MCP; AWA golden set green. TODO(P0-defer): expand the CR1 no-execution grep (tests/test_cli_stub.py) beyond cli.py to ALL runtime modules once they exist."
+    resume_pointer: RESUME.md
+    rollback_path: ROLLBACK.md
+    passed_test_ids: []
+    files: []
+  - id: A0
+    title: "AWA consumer proof (catalog + operator loop + real-PM trial)"
+    status: pending
+    pr: ""
+    commit: ""
+    current_gate: "entry: R-core green. Author AWA catalog; freeze intent-proposal/v1 against a fixture; contamination + real-PM trial"
+    resume_pointer: RESUME.md
+    rollback_path: ROLLBACK.md
+    passed_test_ids: []
+    files: []
+  - id: egress
+    title: "System-wide operator egress gate (all seven PM-facing surfaces)"
+    status: pending
+    pr: ""
+    commit: ""
+    current_gate: "entry: A0 loop exists. CI test: zero Tier A/B/C banned terms + honest confidence across all seven surfaces"
+    resume_pointer: RESUME.md
+    rollback_path: ROLLBACK.md
+    passed_test_ids: []
+    files: []
+  - id: R2
+    title: "LLM enrichment (optional, gated): L3 rerank + L4 typed param extraction"
+    status: pending
+    pr: ""
+    commit: ""
+    current_gate: "entry: A0 proven. LLM behind the deterministic floor + OFF-able; destructive params literal-confirm; injection tests"
+    resume_pointer: RESUME.md
+    rollback_path: ROLLBACK.md
+    passed_test_ids: []
+    files: []
+  - id: C0
+    title: "Reviewable calibration (feedback log + phrasebook diff)"
+    status: pending
+    pr: ""
+    commit: ""
+    current_gate: "entry: intent-feedback/v1 + intent-map/v1 frozen (done in P0). Append-only log; operator-approvable diff; false-confidence budget"
+    resume_pointer: RESUME.md
+    rollback_path: ROLLBACK.md
+    passed_test_ids: []
+    files: []
+  - id: C1
+    title: "Automatic calibration (gated behind C0 promotion)"
+    status: pending
+    pr: ""
+    commit: ""
+    current_gate: "entry: C0 promotion gate (real-use trial; false-strong under threshold; zero destructive near-miss; reversible phrasebook)"
+    resume_pointer: RESUME.md
+    rollback_path: ROLLBACK.md
+    passed_test_ids: []
+    files: []
+  - id: R-resilience
+    title: "Drift detection + self-repair + full doctor + sessionStart re-heal"
+    status: pending
+    pr: ""
+    commit: ""
+    current_gate: "entry: C1 shipped. behavior-hash drift; rebuild-from-events/restore-snapshot/re-seed; corrupt-store fallback"
+    resume_pointer: RESUME.md
+    rollback_path: ROLLBACK.md
+    passed_test_ids: []
+    files: []
+  - id: R-surface
+    title: "All intent CLI verbs + read-only MCP + WF1 enrollment + Flavor-2 pointer"
+    status: pending
+    pr: ""
+    commit: ""
+    current_gate: "entry: R-resilience shipped. Complete the surface within contract; enroll WF1; create the shelf pointer; zero-link parity"
+    resume_pointer: RESUME.md
+    rollback_path: ROLLBACK.md
+    passed_test_ids: []
+    files: []
+  - id: M0
+    title: "Migration design-only + final pre-build review swarm"
+    status: pending
+    pr: ""
+    commit: ""
+    current_gate: "entry: surface complete. ARCHITECTURE pointer for future consumers (no impl); review swarm; real-PM trial"
+    resume_pointer: RESUME.md
+    rollback_path: ROLLBACK.md
+    passed_test_ids: []
+    files: []

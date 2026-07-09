@@ -15,9 +15,9 @@ provenance_trust: "vetted"
 #
 # kind: tool — NOT mcp (LOCKED, non-negotiable).
 #   Precedent: AWA's global/tools/awa is a `tool` even though its runtime ships an MCP server.
-#   intent-router likewise exposes a (future, read-only) MCP mirror but IS a tool. Mis-classifying
-#   this as `kind: mcp` would permanently block the cpp runtime path (mcp masters carry
-#   forbidden-ld tokens and are vendored source-free/discoverability-only). Do not change.
+#   intent-router likewise exposes a (future, read-only) MCP mirror but IS a tool. Classifying it
+#   as `kind: mcp` would permanently misroute downstream governed-repo vendoring (mcp masters are
+#   vendored source-free / discoverability-only), so `tool` is the load-bearing choice. Do not change.
 #
 # Flavor-2 standalone-release binding (SSP + GCB — same doctrine as AWA).
 #   intent-router is a Standalone System Package: a self-contained capability (frozen contracts +
@@ -30,6 +30,6 @@ provenance_trust: "vetted"
 #   (1) this own repo KleinPerkins/intent-router (code, CI, contracts, releases), and
 #   (2) a Flavor-2 `standalone-release` pointer at capabilities/skills/global/tools/intent-router.
 #   P0 creates ONLY (1) + this meta.yml. Creating the (2) shelf pointer + WF1 registry enrollment is
-#   DEFERRED to phase R-surface-complete (keeps P0 zero-link trivially clean; nothing references
-#   the ld/cpp edge yet). `provenance_ref: main` is a placeholder pin; R-surface-complete pins an
-#   immutable release commit at the shelf.
+#   DEFERRED to phase R-surface-complete (keeps P0 zero-link trivially clean; nothing references the
+#   downstream governed edge yet). `provenance_ref: main` is a placeholder pin; R-surface-complete
+#   pins an immutable release commit at the shelf.

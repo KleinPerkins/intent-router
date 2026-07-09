@@ -1,7 +1,7 @@
 # intent-router — shared operator-intent → verb-proposal capability. Make targets: help-first, .PHONY.
 # P0 scope: architecture + frozen contracts + durable artifacts + gates. NO routing logic yet.
 .DEFAULT_GOAL := help
-.PHONY: help install repair doctor check uninstall verify verify-install test version freeze status-verify
+.PHONY: help install repair doctor check uninstall verify verify-install test version freeze status-verify fix-hooks
 
 help: ## Show available targets
 	@echo "intent-router — router proposes, kernel decides (kernel-first). P0 = architecture/contracts freeze."
@@ -15,6 +15,7 @@ help: ## Show available targets
 	@echo "  make status-verify   - recompute the status.yml ledger against disk/tests (cannot lie)"
 	@echo "  make verify          - test + freeze + status-verify + install --check (the repo gate)"
 	@echo "  make verify-install  - full install lifecycle in a throwaway HOME (headless/CI-safe)"
+	@echo "  make fix-hooks       - install KleinPerkins local commit guards if the host overlay is present (see SECURITY.md)"
 	@echo "  make version         - print the package version"
 
 install: ## Install intent-router (idempotent)
@@ -60,3 +61,14 @@ verify-install: ## Exercise the full install lifecycle in a throwaway HOME (neve
 
 version: ## Print the package version
 	@PYTHONPATH=. python3 -c "import intent_router; print(intent_router.__version__)"
+
+fix-hooks: ## Install KleinPerkins local commit guards (identity/data/session-lock) if the host overlay is present
+	@guard="$$HOME/dev/_ops/bin/install-identity-guard.sh"; \
+	  if [ -x "$$guard" ]; then \
+	    "$$guard" "$$(pwd)" && echo "fix-hooks: OK — commit guards installed into .git/hooks"; \
+	  else \
+	    echo "fix-hooks: KleinPerkins host overlay not found ($$guard)."; \
+	    echo "  Local commit guards are a MACHINE-LOCAL developer aid, not part of this standalone"; \
+	    echo "  capability. Durable, reproducible commit safety for every clone is CI"; \
+	    echo "  (.github/workflows/baseline.yml) + branch protection. See SECURITY.md."; \
+	  fi
