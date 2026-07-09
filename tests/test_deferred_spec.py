@@ -13,14 +13,28 @@ future test surface visible and greppable.
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+from intent_router import state
+from intent_router.engine import propose
+from tests import golden_support
 
 
 class TestDeferredSpec(unittest.TestCase):
-    @unittest.skip("SPEC: future session R-core — L0-L2+L5 produce a deterministic, executionless "
-                   "proposal for the AWA golden set with LLM OFF (enforces CR8 deterministic_floor_"
-                   "golden_set).")
     def test_spec_deterministic_floor_golden_set(self):
-        raise NotImplementedError
+        """ACTIVE as of R-core (was spec). CR8 (R-core half): the L0-L2+L5 deterministic floor — with
+        NO LLM (L3/L4 are absent, not toggled) — produces the pinned proposal for every AWA golden
+        utterance, deterministically, and prompt-injection content cannot weaken a proposal's
+        safety_class or skip its confirmation. Granular coverage: tests/test_golden.py; single runner:
+        tests/golden_support.py."""
+        failures = golden_support.check_golden()
+        self.assertEqual(failures, [], "deterministic golden set drift:\n" + "\n".join(failures))
+        catalog = golden_support.load_fixture_catalog(golden_support.load_golden())
+        for case in golden_support.injection_cases():
+            p = propose("awa", case["utterance"], catalog)
+            self.assertNotEqual(p["safety_class"], "read", case["utterance"])
+            self.assertIs(p["requires_confirmation"], True, case["utterance"])
 
     @unittest.skip("SPEC: future session R2 — with L3/L4 (LLM) added then turned OFF, the L0-L2+L5 "
                    "floor STILL produces a valid conservative proposal; no golden-set regression "
@@ -28,10 +42,17 @@ class TestDeferredSpec(unittest.TestCase):
     def test_spec_deterministic_floor_llm_off_degrade(self):
         raise NotImplementedError
 
-    @unittest.skip("SPEC: future session R-core — router state paths are machine-local/private and "
-                   "never written under a shared repo (enforces CR3 state_is_private).")
     def test_spec_state_is_private(self):
-        raise NotImplementedError
+        """ACTIVE as of R-core (was spec). CR3: router state resolves to a machine-local XDG path and
+        the guard refuses any path inside a git working tree. Granular coverage: tests/test_state.py."""
+        self.assertEqual(state.state_dir({"XDG_STATE_HOME": "/x/y"}), Path("/x/y/intent-router"))
+        with TemporaryDirectory() as repo_tmp:
+            (Path(repo_tmp) / ".git").mkdir()
+            with self.assertRaises(RuntimeError):
+                state.assert_private(Path(repo_tmp) / "intent-router")
+        with TemporaryDirectory() as clean_tmp:
+            target = Path(clean_tmp) / "intent-router"
+            self.assertEqual(state.assert_private(target), target.resolve())
 
     @unittest.skip("SPEC: future session A0 — kernel decision on a confidence-1.0 proposal is "
                    "IDENTICAL to the hand-typed equivalent; router cannot flip refuse->allow "

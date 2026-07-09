@@ -1,7 +1,7 @@
 schema: intent-router-status/v1
 generated: "2026-07-08"
 plan: "AWA v8 — Intent-Router Full-System Architecture"
-current_phase: R-core
+current_phase: A0
 # Machine-checked ledger. `make status-verify` recomputes every `done` claim against disk + tests:
 #   - referenced files must exist; passed_test_ids must EXIST and PASS;
 #   - a `done` phase must carry non-empty evidence: >=1 passed_test_id AND a `pr` AND a `commit`
@@ -44,14 +44,14 @@ phases:
     files: []
   - id: R-core
     title: "Deterministic executionless engine L0-L2+L5 + read-only surface"
-    status: pending
-    pr: ""
-    commit: ""
-    current_gate: "entry: P0 frozen. Build normalize/candidates/verdict/why/proposal; read-only CLI+MCP; AWA golden set green. TODO(P0-defer): expand the CR1 no-execution grep (tests/test_cli_stub.py) beyond cli.py to ALL runtime modules once they exist."
+    status: done
+    pr: "https://github.com/KleinPerkins/intent-router/pull/2"
+    commit: "be7bd0dc04404ed617320068dfe361b0914194ae"
+    current_gate: "R-core exit met — deterministic floor (L0-L2+L5, L3/L4 ABSENT), read-only CLI+MCP mirror, catalog-verify bites (bad safety_class/missing param_schema/unsafe tool_path/host literals), AWA 30-utterance golden set green (injection cannot flip safety_class or skip confirmation), intent-proposal/v1 exercised + still PROVISIONAL, CR1 no-execution scan across ALL runtime modules, CR3 state_is_private + CR8 deterministic_floor_golden_set spec->active. make verify + make verify-install green."
     resume_pointer: RESUME.md
     rollback_path: ROLLBACK.md
-    passed_test_ids: []
-    files: []
+    passed_test_ids: ["tests.test_engine.TestPropose.test_matches_expected_verb", "tests.test_golden.TestGoldenSet.test_all_cases_match_pinned_expectations", "tests.test_golden.TestInjectionResistance.test_appended_injection_text_changes_nothing_safety_relevant", "tests.test_deferred_spec.TestDeferredSpec.test_spec_deterministic_floor_golden_set", "tests.test_deferred_spec.TestDeferredSpec.test_spec_state_is_private", "tests.test_catalog.TestBadCatalogClass1_SafetyClass.test_unknown_safety_class_value_rejected", "tests.test_catalog.TestBadCatalogClass3_UnsafeToolPath.test_shell_tool_path_rejected", "tests.test_no_execution.TestNoExecutionAcrossRuntime.test_no_forbidden_primitive_in_any_runtime_module", "tests.test_mcp.TestToolSurface.test_tools_list_is_exactly_the_four_readonly_tools", "tests.test_cli.TestCatalogVerify.test_bad_catalog_fails_with_nonzero", "tests.test_proposal_fixture.TestEngineReproducesFixture.test_serializer_reproduces_hand_written_envelope_exactly"]
+    files: ["intent_router/normalize.py", "intent_router/candidates.py", "intent_router/verdict.py", "intent_router/proposal.py", "intent_router/engine.py", "intent_router/state.py", "intent_router/doctor.py", "intent_router/cli.py", "intent_router/mcp_server.py", "tests/golden/awa.golden.json", "tests/golden_support.py", "tests/fixtures/awa-catalog.fixture.json", "tests/fixtures/awa-proposal.fixture.json"]
   - id: A0
     title: "AWA consumer proof (catalog + operator loop + real-PM trial)"
     status: pending

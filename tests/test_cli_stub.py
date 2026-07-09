@@ -35,14 +35,30 @@ class TestCliStub(unittest.TestCase):
         self.assertEqual(offenders, [],
                         f"router surface must be executionless (CR1); found: {offenders}")
 
-    def test_every_verb_returns_not_yet(self):
-        for verb in cli.VERBS:
+    def test_later_phase_verbs_return_not_yet(self):
+        # R-core ACTIVATES map/explain/catalog-verify/doctor; every LATER-phase verb stays a not-yet
+        # stub until its phase builds it.
+        later = [v for v in cli.VERBS if v not in cli.ACTIVE_VERBS]
+        self.assertTrue(later, "there should still be later-phase stubs")
+        for verb in later:
             buf_out, buf_err = io.StringIO(), io.StringIO()
             with redirect_stdout(buf_out), redirect_stderr(buf_err):
                 rc = cli.main([verb])
-            self.assertEqual(rc, cli.NOT_YET, f"verb '{verb}' must return NOT_YET in P0")
+            self.assertEqual(rc, cli.NOT_YET, f"later verb '{verb}' must return NOT_YET")
             self.assertIn("not yet", buf_err.getvalue().lower(),
-                        f"verb '{verb}' must emit a plain 'not yet' message")
+                        f"later verb '{verb}' must emit a plain 'not yet' message")
+
+    def test_active_verbs_are_not_stubs(self):
+        # The four R-core verbs must NOT return the not-yet signal (they are dispatched to handlers).
+        # Invoked with no args they hit an argparse usage error (2), never NOT_YET (3).
+        for verb in cli.ACTIVE_VERBS:
+            buf_out, buf_err = io.StringIO(), io.StringIO()
+            with redirect_stdout(buf_out), redirect_stderr(buf_err):
+                try:
+                    rc = cli.main([verb])
+                except SystemExit as exc:  # argparse exits on missing required args
+                    rc = exc.code
+            self.assertNotEqual(rc, cli.NOT_YET, f"active verb '{verb}' must not be a not-yet stub")
 
     def test_help_and_version_are_clean(self):
         buf = io.StringIO()
