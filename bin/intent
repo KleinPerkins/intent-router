@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# intent — launcher for the intent-router CLI. Resolves the intent_router package by ROLE
+# (INTENT_ROUTER_HOME, else relative to this shim) and runs it. P0: every verb is a not-yet stub.
+set -euo pipefail
+
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"   # .../bin
+HOME_DIR="${INTENT_ROUTER_HOME:-$(cd "$SELF_DIR/.." && pwd)}"  # runtime/repo root (has intent_router/)
+
+exec env PYTHONPATH="$HOME_DIR${PYTHONPATH:+:$PYTHONPATH}" python3 -m intent_router.cli "$@"

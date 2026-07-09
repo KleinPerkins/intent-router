@@ -1,0 +1,19 @@
+{
+  "schema": "intent-additive-manifest/v1",
+  "version": 1,
+  "rationale": "The ARCHITECTURE-COMPLETE gate. Proves every deferred phase only ADDS to the frozen v1 contracts (no field removal/rename/retype). For each deferred phase, EITHER it contributes additive fields to one or more contracts (listed here and cross-checked against those contracts' `deferred_additions`) OR it makes NO schema change (uses the frozen v1 as-is). tests/test_additive_compat.py enforces bidirectional consistency (manifest <-> contracts) and that every plan-deferred phase is covered. If we cannot show a deferred phase is additive, we are NOT architecture-complete.",
+  "required_additive_phases": ["R2", "C0", "C1", "R-resilience", "R-surface"],
+  "deferred_phases": {
+    "K0-K1": {"kind": "no-schema-change", "reason": "AWA-repo kernel safety lane; touches no intent-router contract."},
+    "K2": {"kind": "no-schema-change", "reason": "AWA-repo engine observability; touches no intent-router contract."},
+    "R-core": {"kind": "no-schema-change", "reason": "Consumes intent-catalog/v1 and serializes intent-proposal/v1 (provisional); adds no fields."},
+    "A0": {"kind": "additive", "contracts": {"intent-proposal/v1": ["catalog_version", "consequence_descriptor"]}, "note": "A0 also FREEZES intent-proposal/v1 (status provisional->frozen) after a fixture; that is a status transition plus these additive fields, never a floor change."},
+    "egress": {"kind": "additive", "contracts": {"intent-constitution/v1": ["tier_a_consumer_contributed"]}},
+    "R2": {"kind": "additive", "contracts": {"intent-catalog/v1": ["extractor", "confirm_literal"], "intent-proposal/v1": ["rerank_source"]}},
+    "C0": {"kind": "no-schema-change", "reason": "Activates source in {seed,manual} and writes intent-feedback/v1 events; both schemas are already frozen in P0 with every field C0 needs."},
+    "C1": {"kind": "additive", "contracts": {"intent-map/v1": ["decay_half_life", "superseded_by", "last_calibrated"], "intent-feedback/v1": ["redacted", "consent_ref"], "intent-constitution/v1": ["false_confidence_budget"]}},
+    "R-resilience": {"kind": "additive", "contracts": {"intent-map/v1": ["behavior_hash"]}},
+    "R-surface": {"kind": "additive", "contracts": {"intent-catalog/v1": ["deprecated"]}},
+    "M0": {"kind": "no-schema-change", "reason": "Migration design-only pointer; no schema change."}
+  }
+}

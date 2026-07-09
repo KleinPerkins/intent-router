@@ -1,0 +1,49 @@
+name: ci
+# CI for the intent-router capability. Runs the full verification gate on every push/PR and on
+# release tags: the test suite (contract-freeze + additive-proof + zero-link + status-verify +
+# constitution + cli-stub), the standalone freeze checker, the ledger honesty gate, and the
+# installer's static preflight + full install lifecycle.
+#
+# HEADLESS-SAFE: every step runs with HOME pointed at a throwaway dir under $RUNNER_TEMP, so CI
+# never mutates a real home. Stdlib only — no third-party deps to install.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.12']
+    steps:
+      # SHA-pinned (supply-chain hardening): tags are mutable, full commit SHAs are immutable.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b  # v5.3.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Point HOME/XDG at a throwaway dir
+        run: |
+          H="$RUNNER_TEMP/intent-router-home"
+          mkdir -p "$H/.local/share" "$H/.config" "$H/.local/state"
+          {
+            echo "HOME=$H"
+            echo "XDG_DATA_HOME=$H/.local/share"
+            echo "XDG_CONFIG_HOME=$H/.config"
+            echo "XDG_STATE_HOME=$H/.local/state"
+          } >> "$GITHUB_ENV"
+      - name: Verify (test + freeze + status-verify + install --check)
+        run: make verify
+      - name: Verify full install lifecycle (throwaway HOME)
+        run: make verify-install
