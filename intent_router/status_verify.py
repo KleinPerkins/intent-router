@@ -8,17 +8,33 @@ test that is missing or red fails the gate. Pending/future phases are shape-chec
 Stdlib only. status.yml uses a tiny, unambiguous grammar (top-level `key: scalar`, a `phases:` list
 of flat maps whose list/object values are INLINE JSON), so parsing is bulletproof without PyYAML.
 
+`--strict` (used by `make status-verify`) fails CLOSED on things a presence-only check would bless:
+  - `pr` must be well-formed (`.../pull/<number>`, rejecting `.../pull/999999-not-real`) AND, when
+    `gh` is available + authed, must actually resolve; when gh is absent/unauthed/offline OR the URL
+    is not a github.com PR, it degrades HONESTLY to shape+presence (offline-safe by design).
+  - the pinned `commit` must be an ANCESTOR of HEAD (`git merge-base --is-ancestor`), not merely a
+    real object.
+  - a MISSING git is `unknown-blocks` (fail-closed), not fail-open.
+Non-strict keeps the original presence-only behavior for backward compatibility.
+
 Run:  python3 -m intent_router.status_verify [--strict] [--no-run] [--status PATH]
 """
 
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 SCHEMA = "intent-router-status/v1"
+
+# A PR reference is well-formed iff it is an https URL ending in `/pull/<integer>`. This is the
+# offline, deterministic floor (it rejects `.../pull/999999-not-real`); existence is an additional
+# best-effort online check (see `_pr_exists`).
+_PR_URL_RE = re.compile(r"^https?://\S+/pull/\d+$")
+_GITHUB_PR_RE = re.compile(r"^https?://github\.com/([^/\s]+)/([^/\s]+)/pull/(\d+)$")
 
 # Every phase of the v8 ladder must appear in the ledger (coverage: the ledger can't omit a phase).
 EXPECTED_PHASES = ["P0", "K0-K1", "K2", "R-core", "A0", "egress", "R2", "C0", "C1",
@@ -126,7 +142,61 @@ def _commit_resolvable(commit: str, repo_root: Path):
     return proc.returncode == 0
 
 
-def verify(status_path: Path, repo_root: Path, run_tests: bool = True) -> list[str]:
+def _commit_is_ancestor(commit: str, repo_root: Path):
+    """Whether `commit` is an ANCESTOR of HEAD (reachable on the current history), not merely a real
+    object. `git merge-base --is-ancestor <commit> HEAD` exits 0=ancestor, 1=not-ancestor; anything
+    else (bad HEAD, shallow clone) or a missing git yields None so the caller can degrade."""
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(repo_root), "merge-base", "--is-ancestor", commit, "HEAD"],
+            capture_output=True, text=True,
+        )
+    except FileNotFoundError:
+        return None
+    if proc.returncode == 0:
+        return True
+    if proc.returncode == 1:
+        return False
+    return None
+
+
+def _pr_shape_ok(pr: str) -> bool:
+    return bool(_PR_URL_RE.match(pr.strip()))
+
+
+def _pr_exists(pr: str, repo_root: Path):
+    """Best-effort ONLINE existence check for a GitHub PR URL. Returns:
+      - True  : gh resolved the PR (it exists),
+      - False : gh definitively reports it does NOT exist (a fabricated well-formed URL),
+      - None  : cannot determine — gh absent/unauthed/offline/timed-out, or a non-github URL.
+    None is an HONEST degrade (offline-safe): the strict gate then relies on shape + presence only.
+    Never raises; a hostile URL can only yield an error string upstream, never code execution."""
+    import os
+    m = _GITHUB_PR_RE.match(pr.strip())
+    if not m:
+        return None  # not a github.com PR URL we know how to resolve
+    owner, repo, num = m.group(1), m.group(2), m.group(3)
+    try:
+        proc = subprocess.run(
+            ["gh", "pr", "view", num, "--repo", f"{owner}/{repo}", "--json", "number"],
+            cwd=str(repo_root), capture_output=True, text=True, timeout=8,
+            # Inherit the real environment (HOME/PATH/GH_TOKEN) so gh can find its auth; without HOME
+            # gh cannot authenticate and every check would silently degrade. CI without auth still
+            # degrades honestly (an auth error is not a 'not found' — see below).
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0", "GH_PROMPT_DISABLED": "1"},
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        return None
+    if proc.returncode == 0:
+        return True
+    err = ((proc.stderr or "") + (proc.stdout or "")).lower()
+    if "could not resolve" in err or "not found" in err or "no pull requests found" in err:
+        return False
+    return None  # auth/network/other failure -> degrade honestly
+
+
+def verify(status_path: Path, repo_root: Path, run_tests: bool = True,
+           strict: bool = False) -> list[str]:
     errors: list[str] = []
     if not status_path.exists():
         return [f"status ledger missing: {status_path}"]
@@ -162,9 +232,20 @@ def verify(status_path: Path, repo_root: Path, run_tests: bool = True) -> list[s
             if not p.get("passed_test_ids"):
                 errors.append(f"{pid}: done phase has NO passed_test_ids "
                               f"(a done phase needs >=1 passing test as evidence)")
-            if not p.get("pr"):
+            pr = p.get("pr")
+            if not pr:
                 errors.append(f"{pid}: done phase has an empty 'pr' "
                               f"(a done phase needs a PR URL as evidence)")
+            elif strict:
+                # A non-empty string is no longer enough in strict mode. Shape is validated offline
+                # (rejects `.../pull/999999-not-real`); existence is a best-effort gh resolution that
+                # degrades honestly to shape+presence when gh is absent/unauthed/offline.
+                if not _pr_shape_ok(str(pr)):
+                    errors.append(f"{pid}: pr {pr!r} is malformed — expected an https URL ending in "
+                                  f"'/pull/<number>'")
+                elif _pr_exists(str(pr), repo_root) is False:
+                    errors.append(f"{pid}: pr {pr!r} could not be resolved — gh reports no such PR "
+                                  f"(a done phase must pin a real PR)")
             commit = p.get("commit")
             if not commit:
                 errors.append(f"{pid}: done phase has an empty 'commit' "
@@ -175,6 +256,16 @@ def verify(status_path: Path, repo_root: Path, run_tests: bool = True) -> list[s
                 if resolvable is False:
                     errors.append(f"{pid}: commit '{commit}' does NOT resolve offline "
                                   f"(git cat-file -e failed) — a done phase must pin a real commit")
+                elif resolvable is None and strict:
+                    # git unavailable: unknown-blocks in strict mode (fail-closed, not fail-open).
+                    errors.append(f"{pid}: git is unavailable — cannot verify commit '{commit}' in "
+                                  f"strict mode (unknown-blocks; strict requires an offline git)")
+                elif resolvable is True and strict:
+                    # Ancestry, not just object-existence: a real object off the current history
+                    # (e.g. a dangling/other-branch commit) is not honest evidence for a done phase.
+                    if _commit_is_ancestor(str(commit), repo_root) is False:
+                        errors.append(f"{pid}: commit '{commit}' is NOT an ancestor of HEAD "
+                                      f"(the object exists but is off the current history)")
             for rel in [p.get("resume_pointer"), p.get("rollback_path"), *p.get("files", [])]:
                 if not rel:
                     continue
@@ -207,12 +298,13 @@ def verify(status_path: Path, repo_root: Path, run_tests: bool = True) -> list[s
 def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     run_tests = "--no-run" not in argv
+    strict = "--strict" in argv
     repo_root = Path(__file__).resolve().parent.parent
     status_path = repo_root / "status.yml"
     if "--status" in argv:
         status_path = Path(argv[argv.index("--status") + 1]).resolve()
 
-    errors = verify(status_path, repo_root, run_tests=run_tests)
+    errors = verify(status_path, repo_root, run_tests=run_tests, strict=strict)
     if errors:
         print("== status-verify: FAILED (the ledger disagrees with disk/tests) ==", file=sys.stderr)
         for e in errors:
