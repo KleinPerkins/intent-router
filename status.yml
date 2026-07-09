@@ -1,10 +1,14 @@
 schema: intent-router-status/v1
 generated: "2026-07-08"
 plan: "AWA v8 — Intent-Router Full-System Architecture"
-current_phase: P0
-# Machine-checked ledger. `make status-verify` recomputes every `done` claim against disk + tests
-# (referenced files must exist; passed_test_ids must exist AND pass). The ledger CANNOT lie.
-# List/object values are INLINE JSON so parsing is stdlib-only and unambiguous.
+current_phase: R-core
+# Machine-checked ledger. `make status-verify` recomputes every `done` claim against disk + tests:
+#   - referenced files must exist; passed_test_ids must EXIST and PASS;
+#   - a `done` phase must carry non-empty evidence: >=1 passed_test_id AND a `pr` AND a `commit`
+#     that RESOLVES offline (git cat-file -e) — an empty-evidence or fake-SHA `done` FAILS;
+#   - `current_phase` must equal the first non-done ROUTER phase (phases with track=consumer-kernel
+#     are AWA-repo lanes that run in parallel and gate "proven", not the router's next action).
+# The ledger CANNOT lie. List/object values are INLINE JSON so parsing is stdlib-only and unambiguous.
 phases:
   - id: P0
     title: "Architecture & Contracts Freeze"
@@ -19,6 +23,7 @@ phases:
   - id: K0-K1
     title: "Kernel safety (AWA lanes, independent, merges first; holds router-off)"
     status: pending
+    track: consumer-kernel
     pr: ""
     commit: ""
     current_gate: "entry: P0 contracts frozen. AWA repo work — clean_receipt/v1 + active_root/v1 + canonical disposition"
@@ -29,6 +34,7 @@ phases:
   - id: K2
     title: "Engine observability (non-load-bearing, AWA repo)"
     status: pending
+    track: consumer-kernel
     pr: ""
     commit: ""
     current_gate: "entry: K0/K1 merged. Fold receipts into timeline; protected archive; drift detection"
@@ -41,7 +47,7 @@ phases:
     status: pending
     pr: ""
     commit: ""
-    current_gate: "entry: P0 frozen. Build normalize/candidates/verdict/why/proposal; read-only CLI+MCP; AWA golden set green"
+    current_gate: "entry: P0 frozen. Build normalize/candidates/verdict/why/proposal; read-only CLI+MCP; AWA golden set green. TODO(P0-defer): expand the CR1 no-execution grep (tests/test_cli_stub.py) beyond cli.py to ALL runtime modules once they exist."
     resume_pointer: RESUME.md
     rollback_path: ROLLBACK.md
     passed_test_ids: []

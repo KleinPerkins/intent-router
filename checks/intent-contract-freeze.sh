@@ -4,9 +4,13 @@
 # pattern: freeze strings + required-key floors, additive-within-v1.
 #
 # The contracts freeze BEHAVIOR (the schema string + the required-key floor + the enum floors).
-# A removal/rename/retype of a required key, or a changed schema string, is a breaking change that
-# requires a versioned bump (intent-<name>.v2.json). Additive OPTIONAL keys / enum extensions are
-# allowed WITHIN v1 (proven by tests/test_additive_compat.py).
+# The required-key floor is an EXACT name->type map, asserted by SET-equality AND per-key TYPE
+# equality (and the same for the nested `param` floor). Therefore a removal, an illegally-ADDED
+# required key (new fields must be OPTIONAL), a RETYPE (e.g. object->string), or a changed schema
+# string is a breaking change that requires a versioned bump (intent-<name>.v2.json). Additive
+# OPTIONAL keys / enum extensions are the only changes allowed WITHIN v1 (proven by
+# tests/test_additive_compat.py). Because the floor is asserted by exact equality, the checker's
+# FLOOR and each contract's `required_keys` can never silently diverge (single source of truth).
 #
 # FREEZE TIMING (obey exactly):
 #   FROZEN in P0 (freeze-locked): intent-catalog/v1, intent-map/v1, intent-feedback/v1,
@@ -49,22 +53,38 @@ EXPECTED = {
     "intent-proposal/v1":     ("intent-proposal.v1.json",     "provisional"),
 }
 
-# The required-key FLOOR each contract must declare (the frozen interface). A drift here is a
-# breaking change requiring a v2 bump.
+# The required-key FLOOR each contract must declare (the frozen interface) as an EXACT name->type
+# map. The checker asserts the contract's required_keys EQUALS this map: same key SET and same TYPE
+# per key. Consequences: a RETYPE (e.g. object->string) FAILS, a DROPPED required key FAILS, and an
+# ADDED required key FAILS (new fields must be OPTIONAL — additive-within-v1). This map is ALSO the
+# single source of truth for the floor, so required_keys can never silently diverge from it.
 FLOOR = {
-    "intent-catalog/v1": ["verb", "aliases", "examples", "param_schema", "preconditions",
-                          "safety_class", "tool_path", "start_point_rules", "plain_label",
-                          "consequence_copy"],
-    "intent-map/v1": ["intent_key", "utterance_examples", "target_verb", "param_bindings",
-                      "weight", "confidence", "hit_count", "last_used", "outcome_stats",
-                      "source", "version"],
-    "intent-feedback/v1": ["ts", "consumer", "catalog_version", "utterance", "proposal",
-                           "operator_choice", "verdict", "confidence", "outcome", "session_id"],
-    "intent-constitution/v1": ["rules", "kernel_invariants", "machine_checks", "banned_terms",
-                               "operator_outcomes"],
-    "intent-proposal/v1": ["consumer", "verb", "params", "start_point", "safety_class",
-                           "tool_path", "confidence", "verdict", "why", "missing_params",
-                           "requires_confirmation"],
+    "intent-catalog/v1": {"verb": "string", "aliases": "array", "examples": "array",
+                          "param_schema": "array<param>", "preconditions": "array",
+                          "safety_class": "enum", "tool_path": "enum",
+                          "start_point_rules": "object", "plain_label": "string",
+                          "consequence_copy": "string"},
+    "intent-map/v1": {"intent_key": "string", "utterance_examples": "array", "target_verb": "string",
+                      "param_bindings": "object", "weight": "number", "confidence": "number",
+                      "hit_count": "int", "last_used": "string|null", "outcome_stats": "object",
+                      "source": "enum", "version": "int"},
+    "intent-feedback/v1": {"ts": "string", "consumer": "string", "catalog_version": "string",
+                           "utterance": "string", "proposal": "object", "operator_choice": "enum",
+                           "verdict": "enum", "confidence": "number", "outcome": "enum",
+                           "session_id": "string"},
+    "intent-constitution/v1": {"rules": "array<rule>", "kernel_invariants": "array<invariant>",
+                               "machine_checks": "object", "banned_terms": "object",
+                               "operator_outcomes": "array"},
+    "intent-proposal/v1": {"consumer": "string", "verb": "string", "params": "object",
+                           "start_point": "string", "safety_class": "enum", "tool_path": "enum",
+                           "confidence": "number", "verdict": "enum", "why": "array",
+                           "missing_params": "array", "requires_confirmation": "bool"},
+}
+
+# Nested object floors (same EXACT name->type equality). intent-catalog's param_schema[] items carry
+# a frozen {name,type,required} floor; dropping or retyping any of them is a breaking change (v2).
+NESTED_FLOOR = {
+    "intent-catalog/v1": {"param": {"name": "string", "type": "enum", "required": "bool"}},
 }
 
 # Frozen enum floors (values may only EXTEND; never shrink/rename).
@@ -119,11 +139,43 @@ for schema, (fname, exp_status) in EXPECTED.items():
         if c.get("frozen") not in (None, "", False):
             errs.append(f"{fname}: a provisional contract must NOT record a `frozen` date yet")
 
-    # Required-key floor present.
+    # Required-key floor: EXACT match (set + per-key type). Catches a RETYPE, a DROPPED key, and an
+    # illegally-ADDED required key (additions must be OPTIONAL). Single-sources FLOOR <-> contract.
     req = c.get("required_keys", {})
-    for k in FLOOR.get(schema, []):
-        if k not in req:
-            errs.append(f"{fname}: required-key floor missing `{k}`")
+    floor = FLOOR.get(schema, {})
+    if not isinstance(req, dict):
+        errs.append(f"{fname}: required_keys must be an object (name->type)")
+    else:
+        missing = set(floor) - set(req)
+        extra = set(req) - set(floor)
+        if missing:
+            errs.append(f"{fname}: required-key floor DROPPED {sorted(missing)} (breaking; needs v2)")
+        if extra:
+            errs.append(f"{fname}: required_keys ADD {sorted(extra)} — a new field must be OPTIONAL "
+                        f"(additive-within-v1); a new REQUIRED key is breaking (needs v2)")
+        for k in sorted(set(floor) & set(req)):
+            if req[k] != floor[k]:
+                errs.append(f"{fname}: required key `{k}` RETYPED {req[k]!r} != frozen {floor[k]!r} "
+                            f"(breaking; needs v2)")
+
+    # Nested object floor: EXACT match on each declared nested spec's required_keys.
+    nested = c.get("nested", {}) if isinstance(c.get("nested"), dict) else {}
+    for nname, nfloor in NESTED_FLOOR.get(schema, {}).items():
+        nspec = nested.get(nname)
+        if not isinstance(nspec, dict) or not isinstance(nspec.get("required_keys"), dict):
+            errs.append(f"{fname}: nested `{nname}` floor missing (expected required_keys {sorted(nfloor)})")
+            continue
+        nreq = nspec["required_keys"]
+        nmissing = set(nfloor) - set(nreq)
+        nextra = set(nreq) - set(nfloor)
+        if nmissing:
+            errs.append(f"{fname}: nested `{nname}` DROPPED {sorted(nmissing)} (breaking; needs v2)")
+        if nextra:
+            errs.append(f"{fname}: nested `{nname}` ADD required {sorted(nextra)} — a nested addition "
+                        f"must be OPTIONAL (additive-within-v1)")
+        for k in sorted(set(nfloor) & set(nreq)):
+            if nreq[k] != nfloor[k]:
+                errs.append(f"{fname}: nested `{nname}.{k}` RETYPED {nreq[k]!r} != frozen {nfloor[k]!r}")
 
     # Enum floor present (values may extend; the floor set must be a subset of the declared enum).
     declared = c.get("enums", {})

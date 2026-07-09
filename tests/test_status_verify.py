@@ -5,6 +5,8 @@ Uses hermetic fixture repos so the test never depends on the real ledger's curre
 
 from __future__ import annotations
 
+import os
+import subprocess
 import textwrap
 import unittest
 from pathlib import Path
@@ -31,12 +33,25 @@ def _pending_block(pid: str) -> str:
     """)
 
 
-def _ledger(p0_block: str) -> str:
-    body = "schema: intent-router-status/v1\ncurrent_phase: P0\nphases:\n"
+def _ledger(p0_block: str, current_phase: str = "P0") -> str:
+    body = f"schema: intent-router-status/v1\ncurrent_phase: {current_phase}\nphases:\n"
     body += textwrap.indent(p0_block, "  ")
     for pid in _ALL_PHASES[1:]:
         body += textwrap.indent(_pending_block(pid), "  ")
     return body
+
+
+def _init_git_repo(root: Path) -> str:
+    """Init a throwaway git repo with one empty commit; return its full SHA. Lets a fixture pin a
+    REAL resolvable commit (so the honest ledger passes) or contrast it with a fake SHA."""
+    env = {**os.environ, "GIT_TERMINAL_PROMPT": "0", "GIT_CONFIG_GLOBAL": "/dev/null",
+           "GIT_CONFIG_SYSTEM": "/dev/null"}
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True, env=env)
+    subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=root, check=True, env=env)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=root, check=True, env=env)
+    subprocess.run(["git", "commit", "--allow-empty", "-q", "-m", "seed"], cwd=root, check=True, env=env)
+    return subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True,
+                          check=True, env=env).stdout.strip()
 
 
 class TestStatusVerify(unittest.TestCase):
@@ -58,6 +73,7 @@ class TestStatusVerify(unittest.TestCase):
     def test_honest_ledger_passes(self):
         with TemporaryDirectory() as d:
             root = Path(d)
+            sha = _init_git_repo(root)  # a REAL resolvable commit for the done phase
             (root / "RESUME.md").write_text("resume", encoding="utf-8")
             (root / "ROLLBACK.md").write_text("rollback", encoding="utf-8")
             (root / "ART.md").write_text("art", encoding="utf-8")
@@ -70,19 +86,20 @@ class TestStatusVerify(unittest.TestCase):
                     def test_ok(self):
                         self.assertTrue(True)
             """), encoding="utf-8")
-            p0 = textwrap.dedent("""\
+            p0 = textwrap.dedent(f"""\
               - id: P0
                 title: "P0"
                 status: done
-                pr: "url"
-                commit: ""
+                pr: "https://example/pull/1"
+                commit: "{sha}"
                 current_gate: "done"
                 resume_pointer: RESUME.md
                 rollback_path: ROLLBACK.md
                 passed_test_ids: ["tests.test_fix.TestFix.test_ok"]
                 files: ["ART.md"]
             """)
-            (root / "status.yml").write_text(_ledger(p0), encoding="utf-8")
+            # P0 done + rest pending (no track) => first non-done router phase is K0-K1.
+            (root / "status.yml").write_text(_ledger(p0, current_phase="K0-K1"), encoding="utf-8")
             errors = status_verify.verify(root / "status.yml", root, run_tests=True)
             self.assertEqual(errors, [], f"honest ledger should pass, got: {errors}")
 
@@ -118,6 +135,93 @@ class TestStatusVerify(unittest.TestCase):
             joined = "\n".join(errors)
             self.assertIn("DOES_NOT_EXIST.md", joined, "must catch the missing-file lie")
             self.assertTrue(any("test_fails" in e for e in errors), "must catch the failing-test lie")
+
+    def test_false_done_empty_evidence_fails(self):
+        """BLOCKER-2 regression: a phase flipped to `done` with EMPTY evidence must FAIL.
+
+        Before the P0 review fix this passed EXIT 0 (a done phase with no test, no pr, no commit was
+        blessed). Now empty passed_test_ids / pr / commit each bite."""
+        with TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "RESUME.md").write_text("r", encoding="utf-8")
+            (root / "ROLLBACK.md").write_text("r", encoding="utf-8")
+            p0 = textwrap.dedent("""\
+              - id: P0
+                title: "P0"
+                status: done
+                pr: ""
+                commit: ""
+                current_gate: "empty-evidence"
+                resume_pointer: RESUME.md
+                rollback_path: ROLLBACK.md
+                passed_test_ids: []
+                files: []
+            """)
+            (root / "status.yml").write_text(_ledger(p0, current_phase="K0-K1"), encoding="utf-8")
+            errors = status_verify.verify(root / "status.yml", root, run_tests=False)
+            joined = "\n".join(errors)
+            self.assertIn("NO passed_test_ids", joined, "must reject a done phase with no tests")
+            self.assertIn("empty 'pr'", joined, "must reject a done phase with no pr")
+            self.assertIn("empty 'commit'", joined, "must reject a done phase with no commit")
+
+    def test_fake_pr_and_commit_rejected(self):
+        """BLOCKER-3 regression: a fabricated commit SHA (with any /pull/N) must FAIL.
+
+        A non-empty `pr` + a well-formed-but-nonexistent `commit` used to pass (only presence was
+        checked). Now the commit must resolve offline via `git cat-file -e`."""
+        with TemporaryDirectory() as d:
+            root = Path(d)
+            _init_git_repo(root)  # a real repo that does NOT contain the fake commit
+            (root / "RESUME.md").write_text("r", encoding="utf-8")
+            (root / "ROLLBACK.md").write_text("r", encoding="utf-8")
+            fake = "deadbeef" * 5  # 40 hex chars, not an object in this repo
+            p0 = textwrap.dedent(f"""\
+              - id: P0
+                title: "P0"
+                status: done
+                pr: "https://github.com/KleinPerkins/intent-router/pull/9999999"
+                commit: "{fake}"
+                current_gate: "fake-commit"
+                resume_pointer: RESUME.md
+                rollback_path: ROLLBACK.md
+                passed_test_ids: ["x.Y.z"]
+                files: []
+            """)
+            (root / "status.yml").write_text(_ledger(p0, current_phase="K0-K1"), encoding="utf-8")
+            errors = status_verify.verify(root / "status.yml", root, run_tests=False)
+            joined = "\n".join(errors)
+            self.assertIn(fake, joined, "must name the unresolvable commit")
+            self.assertIn("does NOT resolve", joined, "must reject a fabricated commit SHA")
+
+    def test_current_phase_must_match_first_non_done(self):
+        """MINOR-8 regression: a stale current_phase (pointing at a done phase) must FAIL."""
+        with TemporaryDirectory() as d:
+            root = Path(d)
+            sha = _init_git_repo(root)
+            (root / "RESUME.md").write_text("r", encoding="utf-8")
+            (root / "ROLLBACK.md").write_text("r", encoding="utf-8")
+            tdir = root / "tests"; tdir.mkdir()
+            (tdir / "__init__.py").write_text("", encoding="utf-8")
+            (tdir / "test_fix.py").write_text(
+                "import unittest\nclass T(unittest.TestCase):\n    def test_ok(self):\n        pass\n",
+                encoding="utf-8")
+            p0 = textwrap.dedent(f"""\
+              - id: P0
+                title: "P0"
+                status: done
+                pr: "https://example/pull/1"
+                commit: "{sha}"
+                current_gate: "done"
+                resume_pointer: RESUME.md
+                rollback_path: ROLLBACK.md
+                passed_test_ids: ["tests.test_fix.T.test_ok"]
+                files: []
+            """)
+            # current_phase stale at P0 (already done) — must be flagged.
+            (root / "status.yml").write_text(_ledger(p0, current_phase="P0"), encoding="utf-8")
+            errors = status_verify.verify(root / "status.yml", root, run_tests=True)
+            self.assertTrue(any("current_phase" in e for e in errors),
+                            f"stale current_phase must be caught, got: {errors}")
 
     def test_missing_phase_is_caught(self):
         # Drop M0 -> coverage failure.

@@ -21,18 +21,32 @@ def _load(fname):
     return json.loads((_CONTRACTS / fname).read_text(encoding="utf-8"))
 
 
-def _test_id_resolves(test_id: str) -> bool:
-    parts = test_id.split(".")
+def _resolve_method(test_id: str):
+    """Resolve a dotted 'module.Class.method' test-id to the method object, or None."""
+    parts = test_id.split(".") if test_id else []
     if len(parts) < 3:
-        return False
+        return None
     module_name = ".".join(parts[:-2])
     cls_name, meth_name = parts[-2], parts[-1]
     try:
         mod = importlib.import_module(module_name)
         cls = getattr(mod, cls_name)
-        return callable(getattr(cls, meth_name, None))
+        m = getattr(cls, meth_name, None)
+        return m if callable(m) else None
     except Exception:  # noqa: BLE001
-        return False
+        return None
+
+
+def _test_id_resolves(test_id: str) -> bool:
+    return _resolve_method(test_id) is not None
+
+
+def _is_skipped(method) -> bool:
+    return bool(getattr(method, "__unittest_skip__", False))
+
+
+def _skip_reason(method) -> str:
+    return str(getattr(method, "__unittest_skip_why__", "") or "")
 
 
 class TestConstitution(unittest.TestCase):
@@ -76,16 +90,40 @@ class TestConstitution(unittest.TestCase):
         for name, mc in self.c["machine_checks"].items():
             status = mc.get("status")
             self.assertIn(status, ("active", "spec"), f"{name}: bad status {status!r}")
+            tid = mc.get("test_id")
+            m = _resolve_method(tid) if tid else None
             if status == "active":
-                tid = mc.get("test_id")
-                if not tid or not _test_id_resolves(tid):
+                if m is None:
                     problems.append(f"{name}: active check references unresolved test_id {tid!r}")
-            else:  # spec — must be honestly deferred, never silently passing
-                if mc.get("test_id") is not None:
-                    problems.append(f"{name}: spec check must have null test_id (got {mc.get('test_id')!r})")
+                elif _is_skipped(m):
+                    problems.append(f"{name}: active check test {tid} is SKIPPED (must be a real passing test)")
+            else:  # spec — must map to a SKIPPED placeholder + name a future phase (never silently passing)
                 if not mc.get("phase"):
                     problems.append(f"{name}: spec check must name a future phase")
+                if m is None:
+                    problems.append(f"{name}: spec check test_id {tid!r} does not resolve to a placeholder")
+                elif not _is_skipped(m):
+                    problems.append(f"{name}: spec placeholder {tid} is NOT skipped (would silently pass)")
         self.assertEqual(problems, [], "machine_check honesty violations:\n" + "\n".join(problems))
+
+    def test_every_spec_check_maps_to_skipped_placeholder(self):
+        """Completeness (MINOR-6/-11): every `spec` machine_check maps to a SKIPPED placeholder whose
+        skip reason names the SAME phase — so the future test surface is greppable AND a phase-label
+        can't silently drift between the constitution and its placeholder (the CR8 bug)."""
+        problems = []
+        specs = {n: mc for n, mc in self.c["machine_checks"].items() if mc.get("status") == "spec"}
+        self.assertTrue(specs, "expected at least one spec machine_check")
+        for name, mc in specs.items():
+            tid = mc.get("test_id")
+            m = _resolve_method(tid) if tid else None
+            if m is None or not _is_skipped(m):
+                problems.append(f"{name}: spec check must map to a skipped placeholder (got {tid!r})")
+                continue
+            phase = mc.get("phase", "")
+            if phase and phase not in _skip_reason(m):
+                problems.append(f"{name}: machine_check phase {phase!r} not reflected in the "
+                                f"placeholder skip reason ({_skip_reason(m)!r}) — phase-label drift")
+        self.assertEqual(problems, [], "spec completeness / phase drift:\n" + "\n".join(problems))
 
     def test_operator_outcomes_match_feedback_enum(self):
         outcomes = self.c["operator_outcomes"]

@@ -168,7 +168,12 @@ Referenced by number from `CONSTITUTION.md`:
 - **Kernel-sourced consequence (KI4):** consequence-based confirmations are sourced from the KERNEL
   disposition's consequence descriptor `{destroys_unshared_work, irreversible, affects_shared_ref}`,
   not from the router and not from a verb list. The confirmation content is deterministic, so the
-  confirm text itself is never router-in-the-safety-path.
+  confirm text itself is never router-in-the-safety-path. **Design consequence:** the descriptor is
+  *deliberately kept OUT of the router-emitted `intent-proposal/v1`* (see the contract's
+  `excluded_by_design`). The consumer reads it from the kernel disposition at confirm time; the router
+  never relays it. The A0 seam test MUST assert confirmation copy derives from the kernel disposition
+  and IGNORES any router-relayed field even if one were present — so a router artifact can never
+  appear to source a safety-relevant confirmation.
 - **Prompt-injection (CR5):** repo/transcript/catalog-example content is data, never instructions; it
   can never change a proposal's `safety_class`.
 - **Off-switch (CR6):** uninstall the router → the operator loop degrades to ask + a secondary

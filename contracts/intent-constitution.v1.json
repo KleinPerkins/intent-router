@@ -22,7 +22,7 @@
     {"id": "CR5", "rule": "Prompt-injection resistance. Repo, transcript, and catalog-example content are DATA, never instructions; content can never change a proposal's safety_class.", "enforcement": "prompt_injection_data_not_instruction"},
     {"id": "CR6", "rule": "Off-switch. Uninstalling the router degrades the consumer's operator loop to ask + a secondary explicit path; it never silently guesses a destructive action.", "enforcement": "off_switch_degrade_to_ask"},
     {"id": "CR7", "rule": "Calibration is reviewable-first (C0) then automatic (C1); promotion is a GATE, not a reopenable design choice.", "enforcement": "calibration_promotion_gate"},
-    {"id": "CR8", "rule": "No LLM in the deterministic safety floor. L0-L2+L5 produce a valid conservative proposal with L3/L4 OFF (offline golden-set + degrade property).", "enforcement": "deterministic_floor_no_llm"},
+    {"id": "CR8", "rule": "No LLM in the deterministic safety floor. L0-L2+L5 produce a valid conservative proposal with L3/L4 OFF (offline golden-set + degrade property).", "enforcement": "deterministic_floor_golden_set"},
     {"id": "CR9", "rule": "An LLM-inferred DESTRUCTIVE param requires explicit operator confirmation of the literal value; deterministic extraction is required for any slot feeding a destructive verb.", "enforcement": "destructive_param_literal_confirm"},
     {"id": "CR10", "rule": "Every PM-facing surface is jargon-free + honest-confidence (system-wide egress gate); no bare-green status may imply an unauditable safety guarantee.", "enforcement": "egress_zero_banned_terms"}
   ],
@@ -38,17 +38,18 @@
     "zero_link":                    {"enforces": "CR3", "test_id": "tests.test_zero_link.TestZeroLink.test_no_forbidden_literals_in_tracked_surface", "status": "active", "phase": "P0"},
     "constitution_wellformed":      {"enforces": "CR4", "test_id": "tests.test_constitution.TestConstitution.test_constitution_wellformed", "status": "active", "phase": "P0"},
     "status_ledger_honest":         {"enforces": "CR4", "test_id": "tests.test_status_verify.TestStatusVerify.test_lying_ledger_fails", "status": "active", "phase": "P0"},
-    "state_is_private":             {"enforces": "CR3", "test_id": null, "status": "spec", "phase": "R-core"},
-    "prompt_injection_data_not_instruction": {"enforces": "CR5", "test_id": null, "status": "spec", "phase": "R2"},
-    "off_switch_degrade_to_ask":    {"enforces": "CR6", "test_id": null, "status": "spec", "phase": "A0"},
-    "calibration_promotion_gate":   {"enforces": "CR7", "test_id": null, "status": "spec", "phase": "C1"},
-    "deterministic_floor_no_llm":   {"enforces": "CR8", "test_id": null, "status": "spec", "phase": "R2"},
-    "destructive_param_literal_confirm": {"enforces": "CR9", "test_id": null, "status": "spec", "phase": "R2"},
-    "egress_zero_banned_terms":     {"enforces": "CR10", "test_id": null, "status": "spec", "phase": "egress"},
-    "kernel_first_router_off":      {"enforces": "KI1", "test_id": null, "status": "spec", "phase": "A0"},
-    "kernel_reads_zero_router_artifacts": {"enforces": "KI2", "test_id": null, "status": "spec", "phase": "A0"},
-    "contamination_behavioral":     {"enforces": "KI3", "test_id": null, "status": "spec", "phase": "A0"},
-    "consequence_from_kernel":      {"enforces": "KI4", "test_id": null, "status": "spec", "phase": "A0"}
+    "state_is_private":             {"enforces": "CR3", "test_id": "tests.test_deferred_spec.TestDeferredSpec.test_spec_state_is_private", "status": "spec", "phase": "R-core"},
+    "prompt_injection_data_not_instruction": {"enforces": "CR5", "test_id": "tests.test_deferred_spec.TestDeferredSpec.test_spec_prompt_injection_data_not_instruction", "status": "spec", "phase": "R2"},
+    "off_switch_degrade_to_ask":    {"enforces": "CR6", "test_id": "tests.test_deferred_spec.TestDeferredSpec.test_spec_off_switch_and_kernel_first", "status": "spec", "phase": "A0"},
+    "calibration_promotion_gate":   {"enforces": "CR7", "test_id": "tests.test_deferred_spec.TestDeferredSpec.test_spec_calibration_promotion_gate", "status": "spec", "phase": "C1"},
+    "deterministic_floor_golden_set":     {"enforces": "CR8", "test_id": "tests.test_deferred_spec.TestDeferredSpec.test_spec_deterministic_floor_golden_set", "status": "spec", "phase": "R-core"},
+    "deterministic_floor_llm_off_degrade": {"enforces": "CR8", "test_id": "tests.test_deferred_spec.TestDeferredSpec.test_spec_deterministic_floor_llm_off_degrade", "status": "spec", "phase": "R2"},
+    "destructive_param_literal_confirm": {"enforces": "CR9", "test_id": "tests.test_deferred_spec.TestDeferredSpec.test_spec_destructive_param_literal_confirm", "status": "spec", "phase": "R2"},
+    "egress_zero_banned_terms":     {"enforces": "CR10", "test_id": "tests.test_deferred_spec.TestDeferredSpec.test_spec_egress_zero_banned_terms", "status": "spec", "phase": "egress"},
+    "kernel_first_router_off":      {"enforces": "KI1", "test_id": "tests.test_deferred_spec.TestDeferredSpec.test_spec_off_switch_and_kernel_first", "status": "spec", "phase": "A0"},
+    "kernel_reads_zero_router_artifacts": {"enforces": "KI2", "test_id": "tests.test_deferred_spec.TestDeferredSpec.test_spec_kernel_reads_zero_router_artifacts", "status": "spec", "phase": "A0"},
+    "contamination_behavioral":     {"enforces": "KI3", "test_id": "tests.test_deferred_spec.TestDeferredSpec.test_spec_contamination_behavioral", "status": "spec", "phase": "A0"},
+    "consequence_from_kernel":      {"enforces": "KI4", "test_id": "tests.test_deferred_spec.TestDeferredSpec.test_spec_consequence_from_kernel", "status": "spec", "phase": "A0"}
   },
   "banned_terms": {
     "note": "The system-wide egress gate forbids these on PM-FACING RUNTIME surfaces only (chat, block message, dashboard, MCP labels, save/discard confirm, doctor/status, receipts) — NOT in design docs or code. Tier B is universal across any consumer. Tier A lists GENERIC mechanism words. Tier C (concrete on-disk leakers) is CONSUMER-CONTRIBUTED via each consumer's catalog/egress config, so the shared router names no single consumer's tokens. The egress test composes shared tiers + the consumer's contributed tokens.",
@@ -71,5 +72,5 @@
       {"key": "false_confidence_budget", "type": "object", "target": "top.optional", "note": "The locked metric DEFINITIONS get numeric thresholds at C1 (numbers stay open pending trial data). Additive OPTIONAL key."}
     ]
   },
-  "additive_note": "Rule/invariant IDs and text are immutable-within-v1; new rules/invariants get new IDs (additive). banned_terms tiers and operator_outcomes only EXTEND (the five-outcome model + the banned list grow, never shrink — LOCKED). machine_checks entries move from status `spec` to `active` (with a real test_id) as phases build them; that transition is additive, not a schema change."
+  "additive_note": "Rule/invariant IDs and text are immutable-within-v1; new rules/invariants get new IDs (additive). banned_terms tiers and operator_outcomes only EXTEND (the five-outcome model + the banned list grow, never shrink — LOCKED). EVERY machine_check names a test_id: `active` checks resolve to a real PASSING test now; `spec` checks resolve to a SKIPPED placeholder in tests/test_deferred_spec.py (so the future test surface is greppable and can never silently pass). A phase builds a check by flipping the SAME test from skipped to real and status spec->active; that transition is additive, not a schema change. CR8 is split across two checks: deterministic_floor_golden_set (R-core: L0-L2+L5 golden set green with no LLM) and deterministic_floor_llm_off_degrade (R2: floor still valid with L3/L4 turned OFF once they exist)."
 }

@@ -110,6 +110,22 @@ def _path_env() -> str:
     return os.environ.get("PATH", "/usr/bin:/bin")
 
 
+def _commit_resolvable(commit: str, repo_root: Path):
+    """Whether `commit` resolves to a real commit object OFFLINE.
+
+    Returns True/False when git can answer, or None when git is unavailable (so callers can degrade
+    gracefully outside a checkout). This is what stops a fake SHA (e.g. 'deadbeef…') from passing:
+    `git cat-file -e <sha>^{commit}` is non-zero for a SHA the repo does not contain."""
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(repo_root), "cat-file", "-e", f"{commit}^{{commit}}"],
+            capture_output=True, text=True,
+        )
+    except FileNotFoundError:
+        return None
+    return proc.returncode == 0
+
+
 def verify(status_path: Path, repo_root: Path, run_tests: bool = True) -> list[str]:
     errors: list[str] = []
     if not status_path.exists():
@@ -139,8 +155,26 @@ def verify(status_path: Path, repo_root: Path, run_tests: bool = True) -> list[s
         if not isinstance(p.get("passed_test_ids"), list):
             errors.append(f"{pid}: passed_test_ids must be a list")
 
-        # DONE phases must be recomputed against disk/tests — the ledger cannot lie.
+        # DONE phases must carry non-empty evidence AND be recomputed against disk/tests — the
+        # ledger can neither lie nor bless a `done` phase on empty/fake evidence.
         if st == "done":
+            # BLOCKER-2: empty-evidence `done` is a lie. Require >=1 test AND a pr AND a commit.
+            if not p.get("passed_test_ids"):
+                errors.append(f"{pid}: done phase has NO passed_test_ids "
+                              f"(a done phase needs >=1 passing test as evidence)")
+            if not p.get("pr"):
+                errors.append(f"{pid}: done phase has an empty 'pr' "
+                              f"(a done phase needs a PR URL as evidence)")
+            commit = p.get("commit")
+            if not commit:
+                errors.append(f"{pid}: done phase has an empty 'commit' "
+                              f"(a done phase needs a resolvable commit as evidence)")
+            else:
+                # BLOCKER-3: the commit must actually resolve offline — a fabricated SHA cannot pass.
+                resolvable = _commit_resolvable(str(commit), repo_root)
+                if resolvable is False:
+                    errors.append(f"{pid}: commit '{commit}' does NOT resolve offline "
+                                  f"(git cat-file -e failed) — a done phase must pin a real commit")
             for rel in [p.get("resume_pointer"), p.get("rollback_path"), *p.get("files", [])]:
                 if not rel:
                     continue
@@ -154,6 +188,19 @@ def verify(status_path: Path, repo_root: Path, run_tests: bool = True) -> list[s
                     errors.append(f"{pid}: claims test '{tid}' but it could not be resolved ({detail})")
                 elif state == "fail":
                     errors.append(f"{pid}: claims test '{tid}' PASSES but it FAILED ({detail})")
+
+    # MINOR-8: current_phase must equal the first non-done phase on the ROUTER build path. Phases
+    # tagged track=consumer-kernel (AWA-repo lanes) run in PARALLEL and gate "proven", not the
+    # router's next action (see RESUME.md), so they are excluded from "first non-done". This keeps the
+    # pointer honest with the ledger: you cannot leave current_phase stale after flipping a phase.
+    if "current_phase" in data:
+        router_phases = [p for p in phases if p.get("track") != "consumer-kernel"]
+        first_non_done = next((p.get("id") for p in router_phases
+                               if p.get("status") != "done"), None)
+        cp = data.get("current_phase")
+        if cp != first_non_done:
+            errors.append(f"current_phase={cp!r} but the first non-done router phase is "
+                          f"{first_non_done!r} (reconcile current_phase or a phase status)")
     return errors
 
 

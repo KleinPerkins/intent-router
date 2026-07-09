@@ -30,7 +30,9 @@
   near-miss** in the trial window, and a reversible phrasebook. It is a gate, not a reopenable design
   choice (`calibration_promotion_gate`, spec → C1).
 - **CR8 — No LLM in the deterministic floor.** L0–L2 + L5 produce a valid conservative proposal with
-  L3/L4 OFF (the offline golden-set + degrade property) (`deterministic_floor_no_llm`, spec → R2).
+  L3/L4 OFF (the offline golden-set + degrade property). Enforced by two checks: golden-set green with
+  no LLM (`deterministic_floor_golden_set`, spec → R-core) and, once L3/L4 exist, the floor still
+  valid with them turned OFF (`deterministic_floor_llm_off_degrade`, spec → R2).
 - **CR9 — Destructive params confirm literally.** An LLM-inferred destructive parameter requires
   explicit operator confirmation of the literal value; deterministic extraction is required for any
   slot feeding a destructive verb (`destructive_param_literal_confirm`, spec → R2).
@@ -50,7 +52,11 @@
   (`contamination_behavioral`, spec → A0).
 - **KI4 — Kernel-sourced consequence.** Consequence-based confirmations are sourced from the KERNEL
   disposition's consequence descriptor `{destroys_unshared_work, irreversible, affects_shared_ref}`,
-  not from the router and not from a verb list (`consequence_from_kernel`, spec → A0).
+  not from the router and not from a verb list (`consequence_from_kernel`, spec → A0). The descriptor
+  is therefore **deliberately excluded** from the router-emitted `intent-proposal/v1` (see the
+  contract's `excluded_by_design`): the consumer reads it from the kernel disposition at confirm time.
+  The A0 seam test must assert confirmation copy derives from the kernel disposition and ignores any
+  router-relayed field.
 
 ## The five-outcome operator model
 
@@ -69,7 +75,9 @@ egress phase) composes the shared tiers with the consumer's contributed tokens.
 ## How this document stays honest
 
 `tests/test_constitution.py` asserts: every rule/invariant has a unique id + text + an enforcement
-hook that is a real `machine_check`; every `active` check resolves to an existing test-id; every
-`spec` check has a null test-id + a named future phase (so a deferred invariant can never silently
-pass); and `operator_outcomes` matches the feedback contract. Moving a check from `spec` to `active`
-(with a real test-id) is the ONLY way a future phase discharges an invariant.
+hook that is a real `machine_check`; every `active` check resolves to an existing, non-skipped
+test-id; every `spec` check resolves to a **SKIPPED placeholder** in `tests/test_deferred_spec.py`
+whose skip reason names the SAME future phase (so a deferred invariant can never silently pass AND a
+phase-label can't drift); and `operator_outcomes` matches the feedback contract. Moving a check from
+`spec` to `active` — flipping the same test from skipped to a real assertion — is the ONLY way a
+future phase discharges an invariant.

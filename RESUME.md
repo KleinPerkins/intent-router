@@ -32,7 +32,9 @@ calibration, no mutation:
    `intent-proposal/v1` envelope. NO L3/L4 yet.
 2. Activate the read-only CLI verbs `map`, `explain`, `catalog-verify`, `doctor` (replace their
    not-yet stubs in `intent_router/cli.py`); add the read-only MCP mirror. Keep **no mutating tool
-   path** (CR1).
+   path** (CR1). **TODO (deferred from P0):** expand the CR1 no-execution grep in
+   `tests/test_cli_stub.py` beyond `cli.py` to ALL runtime modules — deferred because no runtime
+   modules existed in P0; it becomes load-bearing the moment R-core adds them.
 3. `catalog-verify` must catch a bad `safety_class`, a missing `param_schema`, an unsafe `tool_path`,
    and host literals in a consumer catalog.
 4. Write a **hand-written `intent-proposal` fixture** and a first deterministic golden set under

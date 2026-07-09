@@ -129,6 +129,9 @@ do_uninstall() {
   rm -rf "$RUNTIME"
   rm -f "$ENV_FILE" "$POINTER"
   rmdir "$CONFIG_DIR" 2>/dev/null || true
+  # Remove the now-empty data-home parent ($XDG_DATA_HOME/intent-router) too, if nothing else lives
+  # there (e.g. no leftover .bak files). rmdir is a safe no-op when the dir is non-empty or absent.
+  rmdir "$(_data_home)/intent-router" 2>/dev/null || true
   if [ "$keep_state" = "1" ]; then
     log "kept router state at $STATE_DIR (--keep-state)"
   elif [ -d "$STATE_DIR" ]; then

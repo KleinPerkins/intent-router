@@ -1,10 +1,14 @@
 """Zero-link: the intent-router capability must carry ZERO governed-repo (cpp/ld-edge) literals.
 
 intent-router is a shared, global capability destined for the `tools/intent-router` shelf. Like
-AWA, its whole tracked surface must name no downstream governed repo. This in-repo pre-flight is
-the SOLE kernel guard here and mirrors the orchestrator's `zero-link --mode global` gate (a
-recursive grep over the payload against a forbidden-token list). Referencing the FIRST CONSUMER
-(AWA) is allowed — AWA is a sibling KleinPerkins capability, not a forbidden token.
+AWA, its tracked surface must name no downstream governed repo. This in-repo pre-flight mirrors the
+orchestrator's `zero-link --mode global` gate against a forbidden-token list. Referencing the FIRST
+CONSUMER (AWA) is allowed — AWA is a sibling KleinPerkins capability, not a forbidden token.
+
+Scan scope: the GIT surface that is (or would be) committed — tracked files plus new,
+non-ignored files (`git ls-files --cached --others --exclude-standard`), so a forbidden token is
+caught even before the file is staged, while `.gitignore`d cruft is skipped. Falls back to a
+working-tree walk only when git is unavailable (e.g. an installed runtime copy outside a checkout).
 
 The forbidden tokens are assembled from fragments so THIS scanner stays token-clean, and it
 excludes itself from the scan.
@@ -13,6 +17,7 @@ excludes itself from the scan.
 from __future__ import annotations
 
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -39,6 +44,23 @@ _SKIP_SUFFIX = {".pyc"}
 
 
 def _iter_tracked_files():
+    """Yield the git surface that is or would be committed (tracked + new non-ignored files), via
+    `git ls-files`. Fall back to a working-tree walk only when git is unavailable."""
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(_REPO_ROOT), "ls-files", "-z",
+             "--cached", "--others", "--exclude-standard"],
+            capture_output=True, text=True, check=True,
+        ).stdout
+        rels = [r for r in out.split("\0") if r]
+        if rels:
+            for rel in rels:
+                p = _REPO_ROOT / rel
+                if p.is_file() and p.suffix not in _SKIP_SUFFIX:
+                    yield p
+            return
+    except Exception:  # noqa: BLE001 — git absent (installed runtime); fall back below.
+        pass
     for path in sorted(_REPO_ROOT.rglob("*")):
         if not path.is_file():
             continue

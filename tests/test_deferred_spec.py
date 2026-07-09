@@ -17,8 +17,15 @@ import unittest
 
 class TestDeferredSpec(unittest.TestCase):
     @unittest.skip("SPEC: future session R-core — L0-L2+L5 produce a deterministic, executionless "
-                   "proposal for the AWA golden set with LLM OFF (enforces CR8 deterministic floor).")
+                   "proposal for the AWA golden set with LLM OFF (enforces CR8 deterministic_floor_"
+                   "golden_set).")
     def test_spec_deterministic_floor_golden_set(self):
+        raise NotImplementedError
+
+    @unittest.skip("SPEC: future session R2 — with L3/L4 (LLM) added then turned OFF, the L0-L2+L5 "
+                   "floor STILL produces a valid conservative proposal; no golden-set regression "
+                   "(enforces CR8 deterministic_floor_llm_off_degrade).")
+    def test_spec_deterministic_floor_llm_off_degrade(self):
         raise NotImplementedError
 
     @unittest.skip("SPEC: future session R-core — router state paths are machine-local/private and "
@@ -30,6 +37,12 @@ class TestDeferredSpec(unittest.TestCase):
                    "IDENTICAL to the hand-typed equivalent; router cannot flip refuse->allow "
                    "(enforces KI3 contamination_behavioral).")
     def test_spec_contamination_behavioral(self):
+        raise NotImplementedError
+
+    @unittest.skip("SPEC: future session A0 — consequence-confirmation copy derives from the KERNEL "
+                   "disposition's consequence descriptor and IGNORES any router-relayed field, even "
+                   "if present (enforces KI4 consequence_from_kernel).")
+    def test_spec_consequence_from_kernel(self):
         raise NotImplementedError
 
     @unittest.skip("SPEC: future session A0 — grep proves the consumer kernel reads ZERO router "

@@ -31,12 +31,14 @@
   "freeze_strings": ["intent-proposal/v1"],
   "deferred_additions": {
     "A0": [
-      {"key": "catalog_version", "type": "string", "target": "top.optional", "note": "Pins which catalog version produced the proposal (seam tests in the consumer repo assert this). Additive OPTIONAL key added when the envelope is frozen."},
-      {"key": "consequence_descriptor", "type": "object", "target": "top.optional", "note": "The KERNEL-sourced consequence descriptor {destroys_unshared_work, irreversible, affects_shared_ref} that drives confirmation copy (CR-KI4). Additive OPTIONAL key; the router only PASSES it through, never authors safety from it."}
+      {"key": "catalog_version", "type": "string", "target": "top.optional", "note": "Pins which catalog version produced the proposal (seam tests in the consumer repo assert this). Additive OPTIONAL key added when the envelope is frozen."}
     ],
     "R2": [
       {"key": "rerank_source", "type": "enum(deterministic|llm)", "target": "top.optional", "note": "Records whether L3 LLM rerank participated; deterministic floor (L0-L2+L5) still produces a valid proposal with this absent. Additive OPTIONAL key."}
     ]
   },
-  "additive_note": "PROVISIONAL — NOT freeze-locked in P0. Once A0 freezes the envelope, the required-key floor above becomes immutable-within-v1 and the enum floors only EXTEND. The deferred_additions above are the anticipated A0/R2 fields and are all OPTIONAL/enum-extension (additive); recording them now is the additive-compatibility proof for the proposal envelope even though the envelope itself is not yet frozen."
+  "excluded_by_design": {
+    "consequence_descriptor": "DELIBERATELY NOT a proposal field (KI4 hygiene). The kernel consequence descriptor {destroys_unshared_work, irreversible, affects_shared_ref} that drives consequence-confirmation copy is read by the consumer FROM THE KERNEL DISPOSITION at confirm time — never relayed through the router. Putting it in the router-emitted proposal would let a router artifact appear to source a safety-relevant confirmation (KI4 says confirmations are kernel-sourced). The A0 seam test MUST assert confirmation copy derives from the kernel disposition and IGNORES any router-relayed field even if present. The plan's proposal schema does not list it; keeping it out is cheap now while proposal is provisional."
+  },
+  "additive_note": "PROVISIONAL — NOT freeze-locked in P0. Once A0 freezes the envelope, the required-key floor above becomes immutable-within-v1 and the enum floors only EXTEND. The deferred_additions above are the anticipated A0/R2 fields and are all OPTIONAL/enum-extension (additive); recording them now is the additive-compatibility proof for the proposal envelope even though the envelope itself is not yet frozen. NOTE (KI4): the kernel consequence_descriptor is intentionally EXCLUDED from this envelope (see excluded_by_design) — the consumer reads it from the kernel disposition at confirm time, not from the router."
 }

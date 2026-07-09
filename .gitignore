@@ -1,4 +1,5 @@
-# .gitignore — allow-list-friendly ignore set for the intent-router capability.
+# .gitignore — deny-list ignore set for the intent-router capability (ignore build cruft, editor/OS
+# files, router runtime state, and secrets; everything else is tracked).
 # Python
 __pycache__/
 *.py[cod]
