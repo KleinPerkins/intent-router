@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "note": "HAND-WRITTEN intent-proposal/v1 fixture (R-core). A human authored the `proposal` envelope below to represent what the router hands a consumer for the 'put this work somewhere safe' utterance against the AWA fixture catalog. tests/test_proposal_fixture.py exercises L5 serialization by asserting engine.propose() reproduces this envelope EXACTLY. IMPORTANT: intent-proposal/v1 stays PROVISIONAL (freeze deferred to A0) — this fixture EXERCISES the envelope; it does not freeze-lock it.",
+    "utterance": "put this work somewhere safe",
+    "catalog_fixture": "tests/fixtures/awa-catalog.fixture.json",
+    "consumer": "awa"
+  },
+  "proposal": {
+    "consumer": "awa",
+    "verb": "protect",
+    "params": {},
+    "start_point": "current",
+    "safety_class": "write",
+    "tool_path": "mcp",
+    "confidence": 1.0,
+    "verdict": "strong",
+    "why": ["verdict:strong", "alias:put,safe,somewhere", "example:put,safe,somewhere,work", "plain_label:work"],
+    "missing_params": ["target_path"],
+    "requires_confirmation": true
+  }
+}

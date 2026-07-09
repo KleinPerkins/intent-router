@@ -15,7 +15,7 @@
   makes the real allow/refuse decision (`contamination_behavioral`, spec → A0).
 - **CR3 — Private state.** Router state (`events.jsonl`, `map.json`, snapshots, phrasebook) is
   machine-local and is NEVER committed to a shared repo (`zero_link` active; `state_is_private`
-  spec → R-core).
+  active as of R-core).
 - **CR4 — Additive-within-v1.** Contracts only grow: a field is ADDED, never removed, renamed, or
   retyped. There is no v2 for this work (`additive_within_v1`, `constitution_wellformed`,
   `status_ledger_honest`, all active).
@@ -31,7 +31,7 @@
   choice (`calibration_promotion_gate`, spec → C1).
 - **CR8 — No LLM in the deterministic floor.** L0–L2 + L5 produce a valid conservative proposal with
   L3/L4 OFF (the offline golden-set + degrade property). Enforced by two checks: golden-set green with
-  no LLM (`deterministic_floor_golden_set`, spec → R-core) and, once L3/L4 exist, the floor still
+  no LLM (`deterministic_floor_golden_set`, active as of R-core) and, once L3/L4 exist, the floor still
   valid with them turned OFF (`deterministic_floor_llm_off_degrade`, spec → R2).
 - **CR9 — Destructive params confirm literally.** An LLM-inferred destructive parameter requires
   explicit operator confirmation of the literal value; deterministic extraction is required for any

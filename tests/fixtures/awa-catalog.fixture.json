@@ -1,0 +1,116 @@
+{
+  "schema": "intent-catalog/v1",
+  "consumer": "awa",
+  "_fixture": "TEST FIXTURE ONLY — a stand-in AWA intent-catalog/v1 used by the R-core golden set. The REAL AWA catalog is authored by the AWA consumer in phase A0. This file lives under tests/ and is never installed as a consumer catalog. PM-facing plain_label/consequence_copy are deliberately jargon-free (zero Tier A/B/C banned terms) so `intent catalog-verify` passes.",
+  "verbs": [
+    {
+      "verb": "protect",
+      "aliases": ["protect", "start protecting", "keep this safe", "put this somewhere safe", "make a safe copy"],
+      "examples": [
+        "put this work somewhere safe",
+        "start protecting this project",
+        "I want to keep my changes safe",
+        "set up a safe place to work"
+      ],
+      "param_schema": [
+        {"name": "target_path", "type": "path", "required": true, "source": "repo-resolver"}
+      ],
+      "preconditions": ["target_path is a project folder"],
+      "safety_class": "write",
+      "tool_path": "mcp",
+      "start_point_rules": {"default": "current"},
+      "plain_label": "Start protecting this work",
+      "consequence_copy": "Creates a separate safe copy for you to work in, so your original files stay untouched."
+    },
+    {
+      "verb": "status",
+      "aliases": ["status", "check status", "is everything okay", "am I safe", "is my work protected"],
+      "examples": [
+        "is everything okay",
+        "how is my work doing",
+        "check that my work is safe",
+        "what is the current state"
+      ],
+      "param_schema": [],
+      "preconditions": [],
+      "safety_class": "read",
+      "tool_path": "cli",
+      "start_point_rules": {"default": "current"},
+      "plain_label": "Check whether your work is protected",
+      "consequence_copy": "Nothing changes. This only tells you whether your work is currently safe."
+    },
+    {
+      "verb": "list_protected",
+      "aliases": ["list", "show my safe copies", "what have I protected", "list protected work"],
+      "examples": [
+        "show me all my safe copies",
+        "what work have I protected",
+        "list everything I am protecting"
+      ],
+      "param_schema": [],
+      "preconditions": [],
+      "safety_class": "read",
+      "tool_path": "cli",
+      "start_point_rules": {"default": "current"},
+      "plain_label": "Show all your protected work",
+      "consequence_copy": "Nothing changes. This lists the safe copies you already have."
+    },
+    {
+      "verb": "cleanup",
+      "aliases": ["cleanup", "clean up", "remove safe copy", "delete a safe copy", "throw away old copy"],
+      "examples": [
+        "clean up my old safe copy",
+        "delete a safe copy I no longer need",
+        "remove an old protected copy",
+        "get rid of this safe copy"
+      ],
+      "param_schema": [
+        {"name": "target_path", "type": "path", "required": true, "source": "repo-resolver"},
+        {"name": "confirm", "type": "bool", "required": true, "source": "literal"}
+      ],
+      "preconditions": ["the safe copy has no unsaved changes"],
+      "safety_class": "destructive",
+      "tool_path": "mcp",
+      "start_point_rules": {"default": "named-target"},
+      "plain_label": "Remove an old safe copy",
+      "consequence_copy": "Deletes a safe copy you no longer need. Anything in it that was not saved elsewhere is lost for good."
+    },
+    {
+      "verb": "resume",
+      "aliases": ["resume", "go back", "continue my work", "pick up where I left off", "reopen protected work"],
+      "examples": [
+        "go back to the work I protected earlier",
+        "pick up where I left off yesterday",
+        "continue the work I saved before",
+        "reopen my protected project"
+      ],
+      "param_schema": [
+        {"name": "target_path", "type": "path", "required": true, "source": "repo-resolver"}
+      ],
+      "preconditions": ["a protected copy exists to resume"],
+      "safety_class": "write",
+      "tool_path": "mcp",
+      "start_point_rules": {"default": "named-target"},
+      "plain_label": "Go back to work you protected earlier",
+      "consequence_copy": "Opens a safe copy you set up before so you can keep working in it."
+    },
+    {
+      "verb": "save",
+      "aliases": ["save", "save my work", "keep my changes", "record my progress"],
+      "examples": [
+        "save the work in my safe copy",
+        "keep the changes I just made",
+        "record my progress so far"
+      ],
+      "param_schema": [
+        {"name": "message", "type": "string", "required": false, "source": "literal"}
+      ],
+      "preconditions": [],
+      "safety_class": "write",
+      "tool_path": "mcp",
+      "start_point_rules": {"default": "current"},
+      "plain_label": "Save your progress",
+      "consequence_copy": "Records the current state of your safe copy so you can come back to it later."
+    }
+  ]
+}
