@@ -10,7 +10,7 @@ phases:
     title: "Architecture & Contracts Freeze"
     status: done
     pr: "https://github.com/KleinPerkins/intent-router/pull/1"
-    commit: ""
+    commit: "ae127ca84b0fa4cd4218e8a590faa74702892459"
     current_gate: "P0 exit criteria met — durable artifacts frozen; no routing logic"
     resume_pointer: RESUME.md
     rollback_path: ROLLBACK.md
