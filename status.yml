@@ -1,7 +1,7 @@
 schema: intent-router-status/v1
 generated: "2026-07-08"
 plan: "AWA v8 — Intent-Router Full-System Architecture"
-current_phase: A0
+current_phase: egress
 # Machine-checked ledger. `make status-verify` recomputes every `done` claim against disk + tests:
 #   - referenced files must exist; passed_test_ids must EXIST and PASS;
 #   - a `done` phase must carry non-empty evidence: >=1 passed_test_id AND a `pr` AND a `commit`
@@ -54,14 +54,14 @@ phases:
     files: ["intent_router/normalize.py", "intent_router/candidates.py", "intent_router/verdict.py", "intent_router/proposal.py", "intent_router/engine.py", "intent_router/state.py", "intent_router/doctor.py", "intent_router/cli.py", "intent_router/mcp_server.py", "intent_router/status_verify.py", "tests/golden/awa.golden.json", "tests/golden_support.py", "tests/fixtures/awa-catalog.fixture.json", "tests/fixtures/awa-proposal.fixture.json", "tests/test_catalog_egress.py", "tests/test_catalog_contract_binding.py", "tests/test_honest_confidence.py"]
   - id: A0
     title: "AWA consumer proof (catalog + operator loop + real-PM trial)"
-    status: pending
-    pr: ""
-    commit: ""
-    current_gate: "entry: R-core green. Author AWA catalog; freeze intent-proposal/v1 against a fixture; contamination + real-PM trial"
+    status: done
+    pr: "https://github.com/KleinPerkins/intent-router/pull/4"
+    commit: "558500f266d1c839a4df16802099853da4484a0e"
+    current_gate: "A0 IMPLEMENTATION complete (router side PR #4, AWA side is the sibling PR in KleinPerkins/awa). Router: intent-proposal/v1 EXERCISED (hand-written fixture + breadth battery over the consumer-shaped catalog) then FROZEN additive-within-v1 (provisional->frozen 2026-07-09; 11-key floor immutable, enums extend-only; checker+doctor+fixture-guard+freeze-regression flipped); four A0 constitution machine_checks spec->active (CR6/KI1 off-switch, KI2 zero-router-artifacts, KI3 behavioral, KI4 kernel-sourced) as router-side reference tests, each citing the authoritative cross-repo AWA proof. AWA side (sibling PR): real intent-catalog/v1 (5 outcomes/6 verbs, passes router catalog-verify with zero Tier A/B/C banned terms), thin operator loop (hear->map->confirm-consequence->execute AWA verb->verify->narrate->record-feedback), plain-language translators (honest confidence), KERNEL-sourced consequence confirmations, 30-utterance golden set, seam test pinning router contract-version, structural+behavioral contamination, off-switch/kernel-first (AWA make verify passes router-UNINSTALLED). Cross-repo seam PROVEN (router present, pinned). REMAINING HUMAN GATE: the real-PM usability trial (plan ~202) stamps 'proven'; an agent-driven rehearsal was run, but a real non-technical PM has not yet driven it. So: implementation done; 'proven' pending that one human trial."
     resume_pointer: RESUME.md
     rollback_path: ROLLBACK.md
-    passed_test_ids: []
-    files: []
+    passed_test_ids: ["tests.test_proposal_exercise.TestProposalEnvelopeExercise.test_every_envelope_has_exactly_the_frozen_required_keys", "tests.test_proposal_exercise.TestProposalEnvelopeExercise.test_no_match_hits_the_conservative_floor", "tests.test_proposal_exercise.TestProposalEnvelopeExercise.test_destructive_and_injection_never_read_and_always_confirm", "tests.test_proposal_fixture.TestProposalContractIsFrozen.test_status_is_frozen", "tests.test_proposal_fixture.TestProposalContractIsFrozen.test_required_key_floor_is_the_frozen_eleven", "tests.test_proposal_fixture.TestEngineReproducesFixture.test_serializer_reproduces_hand_written_envelope_exactly", "tests.test_contract_freeze.TestContractFreeze.test_freeze_checker_passes", "tests.test_contract_freeze.TestContractFreeze.test_proposal_is_frozen", "tests.test_contract_freeze.TestContractFreezeRegression.test_unfreezing_proposal_fails", "tests.test_contract_freeze.TestContractFreezeRegression.test_retype_frozen_proposal_required_key_fails", "tests.test_additive_compat.TestAdditiveCompat.test_all_deferred_phases_additive", "tests.test_deferred_spec.TestDeferredSpec.test_spec_contamination_behavioral", "tests.test_deferred_spec.TestDeferredSpec.test_spec_consequence_from_kernel", "tests.test_deferred_spec.TestDeferredSpec.test_spec_kernel_reads_zero_router_artifacts", "tests.test_deferred_spec.TestDeferredSpec.test_spec_off_switch_and_kernel_first", "tests.test_constitution.TestConstitution.test_machine_checks_active_resolve_and_spec_marked"]
+    files: ["contracts/intent-proposal.v1.json", "contracts/intent-constitution.v1.json", "contracts/additive-manifest.json", "checks/intent-contract-freeze.sh", "intent_router/doctor.py", "tests/test_proposal_exercise.py", "tests/test_proposal_fixture.py", "tests/test_contract_freeze.py", "tests/test_deferred_spec.py", "tests/fixtures/awa-proposal.fixture.json", "RESUME.md", "ROLLBACK.md"]
   - id: egress
     title: "System-wide operator egress gate (all seven PM-facing surfaces)"
     status: pending

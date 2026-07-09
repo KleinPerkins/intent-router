@@ -21,8 +21,28 @@ Why this is always safe:
   an external consumer's build (the consumer's kernel holds router-off — KI1).
 - **Additive-within-v1 (CR4):** a phase only ADDS contract fields. Reverting removes fields the
   prior phase never used, so older data/proposals stay valid against the still-frozen v1 floor.
-- **Provisional proposal:** until A0 freezes `intent-proposal/v1`, reverting A0 also reverts the
-  envelope freeze cleanly (status → provisional).
+- **Proposal freeze (A0):** A0 froze `intent-proposal/v1` (`provisional → frozen`). Reverting the A0
+  PR cleanly reverts the envelope freeze (status → `provisional`, `freeze_exempt: true`, `frozen:
+  null`) and the four A0 machine-checks (`active → spec`). This is safe because the freeze only
+  LOCKED the existing 11-key floor + recorded an additive OPTIONAL field (`catalog_version`) — it
+  removed nothing, so a revert drops only the lock, never a required key.
+
+## A0 rollback (spans two repos)
+
+A0 is one deliverable across two PRs: the router side
+(**[#4](https://github.com/KleinPerkins/intent-router/pull/4)**, `a0/proposal-freeze`, commit
+`558500f`) and the AWA side (sibling PR in `KleinPerkins/awa`). To roll A0 back:
+
+1. Revert the AWA sibling PR (removes the consumer catalog/loop/translators/consequence/golden/seam/
+   contamination/off-switch surfaces — all additive to the AWA tree, so the kernel safety guarantee is
+   unaffected: it holds router-off either way, KI1).
+2. Revert the router PR #4 (flips `intent-proposal/v1` frozen → provisional and the four A0
+   machine-checks active → spec, per the freeze bullet above).
+3. Flip `status.yml` A0 → `pending`, clear its `passed_test_ids`/`pr`/`commit`, set
+   `current_phase: A0`, and regenerate `RESUME.md`. `make status-verify` then recomputes to match disk.
+
+Order matters only if you want each intermediate state green; either revert alone leaves a coherent
+tree (the router revert is independently safe because nothing in this repo links to the consumer).
 
 **Special case — a frozen contract.** `intent-catalog/v1`, `intent-map/v1`, `intent-feedback/v1`,
 and the constitution contract are frozen in P0. Rolling back a LATER phase must never remove a v1
