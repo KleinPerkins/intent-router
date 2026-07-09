@@ -1,9 +1,9 @@
-"""Hand-written intent-proposal/v1 fixture exercise (R-core deliverable).
+"""Hand-written intent-proposal/v1 fixture exercise (R-core deliverable) + A0 freeze guard.
 
 Proves L5 serialization against a HUMAN-authored envelope: the engine must reproduce the hand-written
-`proposal` exactly for the fixture's utterance+catalog. ALSO guards the freeze-timing lock — the
-proposal contract MUST stay `provisional` (freeze deferred to A0); this test fails loudly if someone
-freezes it early.
+`proposal` exactly for the fixture's utterance+catalog. The freeze-timing guard below was FLIPPED in
+A0: the proposal contract is now `frozen` (exercised first — see tests/test_proposal_exercise.py),
+and this test now fails loudly if someone REGRESSES it to provisional or drops the frozen date.
 """
 
 from __future__ import annotations
@@ -23,19 +23,29 @@ def _load(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-class TestProposalContractStaysProvisional(unittest.TestCase):
-    """Do-NOT-freeze guard: R-core exercises the envelope but must not freeze it (that is A0's job)."""
+class TestProposalContractIsFrozen(unittest.TestCase):
+    """A0 freeze guard (FLIPPED from the R-core do-NOT-freeze guard). intent-proposal/v1 is now
+    FROZEN; this guards drift — a regression to provisional, a missing frozen date, or a
+    re-exemption fails here, in addition to the freeze checker."""
 
     def setUp(self):
         self.contract = _load(_CONTRACTS / "intent-proposal.v1.json")
 
-    def test_status_is_provisional(self):
-        self.assertEqual(self.contract["status"], "provisional",
-                         "intent-proposal/v1 must stay provisional in R-core (freeze is A0)")
+    def test_status_is_frozen(self):
+        self.assertEqual(self.contract["status"], "frozen",
+                         "intent-proposal/v1 is frozen as of A0 — unfreezing is a breaking regression")
 
-    def test_freeze_exempt_true_and_no_frozen_date(self):
-        self.assertIs(self.contract["freeze_exempt"], True)
-        self.assertIsNone(self.contract["frozen"], "no frozen date until A0 exercises the seam")
+    def test_freeze_exempt_false_and_has_frozen_date(self):
+        self.assertIs(self.contract["freeze_exempt"], False,
+                      "a frozen contract is not freeze-exempt")
+        self.assertTrue(self.contract["frozen"], "a frozen contract must record a frozen date")
+
+    def test_required_key_floor_is_the_frozen_eleven(self):
+        """Drift guard: the frozen envelope carries EXACTLY its 11 required keys. Adding/dropping/
+        renaming a required key is a breaking change (needs v2) — caught here and by the checker."""
+        self.assertEqual(set(self.contract["required_keys"]), {
+            "consumer", "verb", "params", "start_point", "safety_class", "tool_path",
+            "confidence", "verdict", "why", "missing_params", "requires_confirmation"})
 
 
 class TestHandWrittenFixtureShape(unittest.TestCase):

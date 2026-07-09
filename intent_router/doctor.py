@@ -29,7 +29,7 @@ _EXPECTED_CONTRACTS = {
     "intent-map.v1.json": "frozen",
     "intent-feedback.v1.json": "frozen",
     "intent-constitution.v1.json": "frozen",
-    "intent-proposal.v1.json": "provisional",
+    "intent-proposal.v1.json": "frozen",
 }
 
 
