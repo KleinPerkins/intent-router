@@ -125,6 +125,20 @@ class TestConstitution(unittest.TestCase):
                                 f"placeholder skip reason ({_skip_reason(m)!r}) — phase-label drift")
         self.assertEqual(problems, [], "spec completeness / phase drift:\n" + "\n".join(problems))
 
+    def test_cr1_binds_to_whole_surface_no_execution_test(self):
+        """SHOULD-FIX #4: CR1 must bind to the WHOLE-runtime-surface scan (tests.test_no_execution),
+        not the cli-only stub. Both tests are kept; CR1 binds to the stronger one — the same test the
+        ledger cites. This bites while the binding still points at test_cli_stub."""
+        mc = self.c["machine_checks"]["no_execution_path"]
+        self.assertEqual(mc["enforces"], "CR1")
+        self.assertIn("tests.test_no_execution", mc["test_id"],
+                      "CR1 no_execution_path must bind to the whole-surface tests.test_no_execution")
+        self.assertNotIn("test_cli_stub", mc["test_id"],
+                         "CR1 must not bind to the cli-only stub once the whole-surface test exists")
+        method = _resolve_method(mc["test_id"])
+        self.assertIsNotNone(method, f"CR1 test_id {mc['test_id']!r} must resolve to a real test")
+        self.assertFalse(_is_skipped(method), "CR1 test must be a real, non-skipped test")
+
     def test_operator_outcomes_match_feedback_enum(self):
         outcomes = self.c["operator_outcomes"]
         fb = _load("intent-feedback.v1.json")
