@@ -50,7 +50,7 @@ _FROZEN = {
     "intent-map.v1.json": "frozen",
     "intent-feedback.v1.json": "frozen",
     "intent-constitution.v1.json": "frozen",
-    "intent-proposal.v1.json": "provisional",
+    "intent-proposal.v1.json": "frozen",
 }
 
 
@@ -71,11 +71,11 @@ class TestContractFreeze(unittest.TestCase):
             self.assertEqual(c.get("status"), exp_status,
                             f"{fname}: status must be {exp_status} (freeze-timing lock)")
 
-    def test_proposal_is_provisional_and_freeze_exempt(self):
+    def test_proposal_is_frozen(self):
         c = json.loads((_CONTRACTS / "intent-proposal.v1.json").read_text(encoding="utf-8"))
-        self.assertEqual(c["status"], "provisional")
-        self.assertIs(c["freeze_exempt"], True)
-        self.assertIsNone(c["frozen"], "proposal must not record a frozen date until A0")
+        self.assertEqual(c["status"], "frozen", "intent-proposal/v1 is frozen as of A0")
+        self.assertIs(c["freeze_exempt"], False)
+        self.assertTrue(c["frozen"], "a frozen proposal must record a frozen date (A0)")
 
 
 class TestContractFreezeRegression(unittest.TestCase):
@@ -119,6 +119,21 @@ class TestContractFreezeRegression(unittest.TestCase):
             _edit_json(cdir / "intent-map.v1.json",
                        lambda c: c["required_keys"].pop("weight"))
         self._assert_fails(_run_checker_against(mutate), "DROPPED", "weight")
+
+    def test_unfreezing_proposal_fails(self):
+        # A0 froze intent-proposal/v1 (freeze-timing lock flipped provisional->frozen). Regressing it
+        # back to provisional must now FAIL the shipped checker — the freeze cannot be silently undone.
+        def mutate(cdir):
+            _edit_json(cdir / "intent-proposal.v1.json",
+                       lambda c: c.update({"status": "provisional", "freeze_exempt": True, "frozen": None}))
+        self._assert_fails(_run_checker_against(mutate), "intent-proposal", "status")
+
+    def test_retype_frozen_proposal_required_key_fails(self):
+        # The now-frozen proposal floor is immutable-within-v1: retyping a required key is breaking.
+        def mutate(cdir):
+            _edit_json(cdir / "intent-proposal.v1.json",
+                       lambda c: c["required_keys"].__setitem__("requires_confirmation", "string"))
+        self._assert_fails(_run_checker_against(mutate), "RETYPED", "requires_confirmation")
 
 
 if __name__ == "__main__":

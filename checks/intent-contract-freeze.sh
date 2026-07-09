@@ -15,8 +15,9 @@
 # FREEZE TIMING (obey exactly):
 #   FROZEN in P0 (freeze-locked): intent-catalog/v1, intent-map/v1, intent-feedback/v1,
 #     intent-constitution/v1.
-#   PROVISIONAL (freeze DEFERRED to A0, exempt from the freeze-lock): intent-proposal/v1 — highest
-#     re-architecture risk; freezing before A0 exercises a real fixture would likely force a v2.
+#   FROZEN in A0: intent-proposal/v1 — the highest re-architecture-risk envelope, held provisional
+#     through P0/R-core and frozen only AFTER A0 exercised it (hand-written fixture + breadth battery
+#     + the AWA first-consumer seam). It is now freeze-locked exactly like the P0 four.
 #
 # Role-resolved: finds contracts/ relative to this script (INTENT_HOME), never a hardcoded path.
 set -uo pipefail
@@ -50,7 +51,7 @@ EXPECTED = {
     "intent-map/v1":          ("intent-map.v1.json",          "frozen"),
     "intent-feedback/v1":     ("intent-feedback.v1.json",     "frozen"),
     "intent-constitution/v1": ("intent-constitution.v1.json", "frozen"),
-    "intent-proposal/v1":     ("intent-proposal.v1.json",     "provisional"),
+    "intent-proposal/v1":     ("intent-proposal.v1.json",     "frozen"),
 }
 
 # The required-key FLOOR each contract must declare (the frozen interface) as an EXACT name->type
@@ -213,7 +214,7 @@ if errs:
 sys.exit(0)
 PY
 then
-  pass "all five contracts satisfy the frozen behavior floor (catalog/map/feedback/constitution frozen; proposal provisional)"
+  pass "all five contracts satisfy the frozen behavior floor (catalog/map/feedback/constitution/proposal all frozen; proposal frozen in A0)"
 else
   bad "contract freeze drift (see FAIL lines above) — a removal/rename/retype needs a v2 bump"
 fi
