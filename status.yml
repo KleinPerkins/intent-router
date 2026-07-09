@@ -1,7 +1,7 @@
 schema: intent-router-status/v1
 generated: "2026-07-08"
 plan: "AWA v8 — Intent-Router Full-System Architecture"
-current_phase: egress
+current_phase: R2
 # Machine-checked ledger. `make status-verify` recomputes every `done` claim against disk + tests:
 #   - referenced files must exist; passed_test_ids must EXIST and PASS;
 #   - a `done` phase must carry non-empty evidence: >=1 passed_test_id AND a `pr` AND a `commit`
@@ -64,14 +64,14 @@ phases:
     files: ["contracts/intent-proposal.v1.json", "contracts/intent-constitution.v1.json", "contracts/additive-manifest.json", "checks/intent-contract-freeze.sh", "intent_router/doctor.py", "tests/test_proposal_exercise.py", "tests/test_proposal_fixture.py", "tests/test_contract_freeze.py", "tests/test_deferred_spec.py", "tests/fixtures/awa-proposal.fixture.json", "RESUME.md", "ROLLBACK.md"]
   - id: egress
     title: "System-wide operator egress gate (all seven PM-facing surfaces)"
-    status: pending
-    pr: ""
-    commit: ""
-    current_gate: "entry: A0 loop exists. CI test: zero Tier A/B/C banned terms + honest confidence across all seven surfaces"
+    status: done
+    pr: "https://github.com/KleinPerkins/intent-router/pull/5"
+    commit: "38d8aef3129b02d817e07a0e4e5b33cdb53888dc"
+    current_gate: "egress COMPLETE (router side, this PR; the AWA side is PR-26, merged to KleinPerkins/awa main at 4bc7b10b). CR10 machine-check egress_zero_banned_terms flipped spec->active following the A0 cross-repo pattern: the router-side reference test (test_spec_egress_zero_banned_terms, zero-link) proves the router half (shared tiers + authoritative find_banned_terms render all seven PM-facing surfaces jargon-free with honest confidence, and the matcher BITES per tier), and its authoritative field names the cross-repo AWA proof engine/tests/test_egress_surfaces.py::TestEgressSurfaces. test_id kept router-resolvable (an AWA engine.tests id would fail constitution resolution); test_every_spec_check_maps_to_skipped_placeholder no longer treats egress as spec; CONSTITUTION.md CR10 flipped active + six stale A0 annotations corrected (doc-honesty). make verify + status-verify --strict green; bite-proof: re-skipping the reference test fails test_machine_checks_active_resolve_and_spec_marked."
     resume_pointer: RESUME.md
     rollback_path: ROLLBACK.md
-    passed_test_ids: []
-    files: []
+    passed_test_ids: ["tests.test_deferred_spec.TestDeferredSpec.test_spec_egress_zero_banned_terms", "tests.test_constitution.TestConstitution.test_machine_checks_active_resolve_and_spec_marked", "tests.test_constitution.TestConstitution.test_every_spec_check_maps_to_skipped_placeholder"]
+    files: ["contracts/intent-constitution.v1.json", "tests/test_deferred_spec.py", "CONSTITUTION.md", "RESUME.md", "ROLLBACK.md"]
   - id: R2
     title: "LLM enrichment (optional, gated): L3 rerank + L4 typed param extraction"
     status: pending

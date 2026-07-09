@@ -12,7 +12,7 @@
   field of `intent-proposal` executes anything. Enforced structurally at the surface
   (`no_execution_path`, active).
 - **CR2 — Never authorize.** The router is never in the authorization chain. The consumer's kernel
-  makes the real allow/refuse decision (`contamination_behavioral`, spec → A0).
+  makes the real allow/refuse decision (`contamination_behavioral`, active as of A0).
 - **CR3 — Private state.** Router state (`events.jsonl`, `map.json`, snapshots, phrasebook) is
   machine-local and is NEVER committed to a shared repo (`zero_link` active; `state_is_private`
   active as of R-core).
@@ -24,7 +24,7 @@
   (`prompt_injection_data_not_instruction`, spec → R2).
 - **CR6 — Off-switch.** Uninstalling the router degrades the consumer's operator loop to ask + a
   secondary explicit path; it never silently guesses a destructive action
-  (`off_switch_degrade_to_ask`, spec → A0).
+  (`off_switch_degrade_to_ask`, active as of A0).
 - **CR7 — Calibration promotion is a gate.** Calibration is reviewable-first (C0), then automatic
   (C1). Promotion requires a real-use trial, a false-strong rate below threshold, **zero destructive
   near-miss** in the trial window, and a reversible phrasebook. It is a gate, not a reopenable design
@@ -38,21 +38,21 @@
   slot feeding a destructive verb (`destructive_param_literal_confirm`, spec → R2).
 - **CR10 — Egress: jargon-free + honest confidence.** Every PM-facing surface carries zero Tier
   A/B/C banned terms and expresses honest confidence; no bare-green status may imply an unauditable
-  safety guarantee (`egress_zero_banned_terms`, spec → egress).
+  safety guarantee (`egress_zero_banned_terms`, active as of egress).
 
 ## Kernel invariants (the router must never weaken these)
 
 - **KI1 — Kernel-first.** The consumer's safety guarantee holds engine-off AND router-off; the
-  consumer's own `verify` passes with the router uninstalled (`kernel_first_router_off`, spec → A0).
+  consumer's own `verify` passes with the router uninstalled (`kernel_first_router_off`, active as of A0).
 - **KI2 — Structural non-contamination.** The kernel gate never reads any router artifact — a
   standing test greps the consumer kernel for any import/read of router state = zero, forever
-  (`kernel_reads_zero_router_artifacts`, spec → A0).
+  (`kernel_reads_zero_router_artifacts`, active as of A0).
 - **KI3 — Behavioral non-contamination.** A confidence-1.0 proposal produces the IDENTICAL kernel
   decision as the hand-typed equivalent; the router can never turn a kernel refuse into an allow
-  (`contamination_behavioral`, spec → A0).
+  (`contamination_behavioral`, active as of A0).
 - **KI4 — Kernel-sourced consequence.** Consequence-based confirmations are sourced from the KERNEL
   disposition's consequence descriptor `{destroys_unshared_work, irreversible, affects_shared_ref}`,
-  not from the router and not from a verb list (`consequence_from_kernel`, spec → A0). The descriptor
+  not from the router and not from a verb list (`consequence_from_kernel`, active as of A0). The descriptor
   is therefore **deliberately excluded** from the router-emitted `intent-proposal/v1` (see the
   contract's `excluded_by_design`): the consumer reads it from the kernel disposition at confirm time.
   The A0 seam test must assert confirmation copy derives from the kernel disposition and ignores any
@@ -69,8 +69,8 @@ The operator's response to a proposal is one of five outcomes (extends additivel
 
 Defined in `contracts/intent-constitution.v1.json` (`banned_terms`). Tier A = generic mechanism
 words; Tier B = git-workflow words (universal); Tier C = concrete on-disk leakers, **contributed by
-each consumer** (the shared router names no single consumer's tokens). The egress test (spec →
-egress phase) composes the shared tiers with the consumer's contributed tokens.
+each consumer** (the shared router names no single consumer's tokens). The egress test (active as of
+the egress phase) composes the shared tiers with the consumer's contributed tokens.
 
 ## How this document stays honest
 

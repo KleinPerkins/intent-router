@@ -192,10 +192,91 @@ class TestDeferredSpec(unittest.TestCase):
     def test_spec_destructive_param_literal_confirm(self):
         raise NotImplementedError
 
-    @unittest.skip("SPEC: future session egress — all seven PM-facing surfaces carry zero Tier "
-                   "A/B/C banned terms and express honest confidence (enforces CR10 egress gate).")
     def test_spec_egress_zero_banned_terms(self):
-        raise NotImplementedError
+        """ACTIVE as of egress (was spec). CR10 (router side): the router OWNS the shared banned-term
+        tiers (contracts/intent-constitution.v1.json banned_terms), the seven-surface inventory
+        (contracts/egress-terms.checklist.json), and the AUTHORITATIVE matcher
+        (intent_router.catalog.find_banned_terms) that every consumer's egress gate composes. This
+        router-side reference test proves the router's half WITHOUT importing any consumer (zero-link):
+        a router-agnostic reference rendering of all seven PM-facing surfaces carries ZERO Tier A/B/C
+        banned terms, the auditable surfaces express honest confidence (what was checked AND what was
+        NOT — never a bare green), and the matcher BITES an injected leak on every tier (case-
+        insensitive lowercase mechanism/git words + case-sensitive acronyms). AUTHORITATIVE end-to-end
+        proof over all SEVEN REAL PM-facing surfaces, each rendered through its real path and proven to
+        BITE per-surface: KleinPerkins/awa engine/tests/test_egress_surfaces.py::TestEgressSurfaces
+        (cross-repo; merged to AWA main in PR #26)."""
+        from intent_router import catalog
+
+        # The router owns the shared tiers + the seven-surface inventory; both must be non-empty and
+        # the composed matcher set must be a SUPERSET of the shared tiers (one definition of "leak").
+        constitution = json.loads(
+            (_REPO / "contracts" / "intent-constitution.v1.json").read_text(encoding="utf-8"))
+        tier_a = constitution["banned_terms"]["tier_a_generic_mechanism"]
+        tier_b = constitution["banned_terms"]["tier_b_git_workflow"]
+        self.assertTrue(tier_a and tier_b, "the router must define non-empty shared Tier A + Tier B")
+        checklist = json.loads(
+            (_REPO / "contracts" / "egress-terms.checklist.json").read_text(encoding="utf-8"))
+        self.assertEqual(len(checklist["surfaces"]), 7, "the egress inventory names all seven surfaces")
+        composed = catalog._load_banned_terms()
+        self.assertTrue(set(tier_a) <= composed and set(tier_b) <= composed,
+                        "the composed matcher set must be a superset of the shared tiers")
+
+        # A router-agnostic reference rendering of the SEVEN PM-facing surfaces (the router itself has
+        # NO PM runtime — it only PROPOSES; this models the SHAPE a consumer must render). Every string
+        # is jargon-free; the auditable surfaces name what was AND was not checked (honest confidence).
+        surfaces = {
+            "chat": {"text": "I can set aside a separate safe copy so the files you started with are "
+                             "never touched."},
+            "block": {"text": "I didn't make that change, so nothing you already had was altered. Want "
+                              "to keep going in a safe copy?"},
+            "dashboard": {"headline": "Your work is safe.",
+                          "checked": "I checked that everything you've saved is tucked away safely.",
+                          "not_checked": "I can't vouch for anything you haven't saved yet."},
+            "consent": {"text": "Temporarily stop protecting this repo?"},
+            "confirm": {"text": "This permanently throws away the in-progress work you haven't saved. "
+                                "Continue?",
+                        "checked": "I confirmed this clears work you never saved.",
+                        "not_checked": "Once it's gone I can't bring it back."},
+            "status": {"headline": "Everything I'm looking after is safe.",
+                       "checked": "I checked each safe copy is accounted for.",
+                       "not_checked": "I couldn't check work that was never saved."},
+            "timeline": {"text": "I saved a copy of your in-progress work first, so nothing is lost. A "
+                                 "change was made straight to the files you started with; I spotted it "
+                                 "right afterward, but I could only spot it — I couldn't step in first."},
+        }
+        self.assertEqual(set(surfaces),
+                         {"chat", "block", "dashboard", "consent", "confirm", "status", "timeline"},
+                         "the reference rendering must cover exactly the seven inventoried surfaces")
+
+        # 1. ZERO banned terms on EVERY PM-facing string, via the ROUTER's authoritative matcher.
+        for name, surf in surfaces.items():
+            for field, text in surf.items():
+                self.assertEqual(catalog.find_banned_terms(text), [],
+                                 f"reference surface {name}.{field} leaked jargon: {text!r}")
+
+        # 2. HONEST CONFIDENCE (never a bare green): the auditable surfaces name checked AND not_checked.
+        def _honest(s: dict) -> bool:
+            return bool(s.get("checked")) and bool(s.get("not_checked"))
+        for name in ("dashboard", "confirm", "status"):
+            self.assertTrue(_honest(surfaces[name]),
+                            f"surface {name!r} must state checked + not_checked (honest confidence)")
+        # non-tautological: a bare-green surface (headline only, no not_checked) FAILS the check.
+        self.assertFalse(_honest({"headline": "All good."}),
+                         "a bare green (no not_checked) must not pass honest confidence")
+
+        # 3. The matcher BITES on every tier (non-tautological — a real leak per tier is caught).
+        leaks = {
+            "tier_a_lowercase": "your worktree is safe",             # Tier A mechanism word
+            "tier_a_acronym":   "approve the MCP action",            # acronym, case-sensitive
+            "tier_b_lowercase": "let's merge the branch",            # git-workflow word
+            "tier_b_acronym":   "reset to HEAD now",                 # acronym, case-sensitive
+            "tier_c_concrete":  "this touches your primary checkout",  # AWA-contributed Tier C phrase
+        }
+        for label, text in leaks.items():
+            self.assertTrue(catalog.find_banned_terms(text),
+                            f"matcher failed to bite an injected {label} leak: {text!r}")
+        # plain English near an acronym is NOT a false positive (head/print stay clean).
+        self.assertEqual(catalog.find_banned_terms("use your head, then print the result"), [])
 
     @unittest.skip("SPEC: future session C1 — calibration promotion gate: real-use trial, "
                    "false-strong under threshold, ZERO destructive near-miss, reversible phrasebook "
