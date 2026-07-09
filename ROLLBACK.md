@@ -27,6 +27,28 @@ Why this is always safe:
   LOCKED the existing 11-key floor + recorded an additive OPTIONAL field (`catalog_version`) — it
   removed nothing, so a revert drops only the lock, never a required key.
 
+## egress rollback (spans two repos)
+
+egress is one deliverable across two PRs: the router side (this repo's `egress` branch PR — the PR
+URL + pinned commit are in `status.yml`) and the AWA side (**[#26](https://github.com/KleinPerkins/awa/pull/26)**,
+already merged to `KleinPerkins/awa` main). To roll egress back:
+
+1. Revert the router egress PR: this flips the CR10 machine-check `egress_zero_banned_terms`
+   `active → spec` and restores the `tests/test_deferred_spec.py::test_spec_egress_zero_banned_terms`
+   placeholder to a skipped SPEC stub (plus the `CONSTITUTION.md` CR10 annotation back to `spec → egress`).
+   Safe by construction: the flip added no contract field (`banned_terms`/tiers are unchanged — the
+   `deferred_additions.egress` additive roadmap entry is untouched), so a revert removes only the
+   status flip + the reference-test body, never a frozen key.
+2. Optionally revert the AWA sibling PR #26 (removes the seven-surface egress test + `plain_*`
+   renderers — all ADDITIVE to the AWA tree, so the kernel safety guarantee is unaffected: it holds
+   router-off either way, KI1).
+3. Flip `status.yml` `egress → pending`, clear its `passed_test_ids`/`pr`/`commit`, set
+   `current_phase: egress`, and regenerate `RESUME.md`. `make status-verify` then recomputes to match disk.
+
+Either revert alone leaves a coherent tree (the router revert is independently safe because nothing in
+this repo links to the consumer). The egress flip is presentation/enforcement only — it changed no
+routing, proposal, or kernel decision — so reverting it cannot alter any allow/refuse outcome.
+
 ## A0 rollback (spans two repos)
 
 A0 is one deliverable across two PRs: the router side
