@@ -1,2 +1,8 @@
 # CODEOWNERS — default owner for intent-router.
 * @KleinPerkins
+
+# BEGIN kleinperkins runnerless PR automation v3
+/.github/ @KleinPerkins
+/CODEOWNERS @KleinPerkins
+/_ops/ @KleinPerkins
+# END kleinperkins runnerless PR automation v3
