@@ -1,5 +1,5 @@
 {
-  "activation_generation": 1,
+  "activation_generation": 2,
   "check_name": "pr-automation / verify",
   "controller_release_digest": "sha256:bf9d3a0e22cf2df153efd569d283d668991df1aca158b7b8367441aa6347d77d",
   "default_branch": "main",
