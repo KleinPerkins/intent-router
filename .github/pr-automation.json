@@ -1,0 +1,25 @@
+{
+  "activation_generation": 1,
+  "check_name": "pr-automation / verify",
+  "controller_release_digest": "sha256:bf9d3a0e22cf2df153efd569d283d668991df1aca158b7b8367441aa6347d77d",
+  "default_branch": "main",
+  "max_changed_files": 200,
+  "max_total_patch_bytes": 5000000,
+  "name": "intent-router",
+  "owner": "KleinPerkins",
+  "protected_paths": [
+    ".github",
+    "CODEOWNERS",
+    "_ops"
+  ],
+  "repository_id": 1294651532,
+  "reviewer_app_id": 4269364,
+  "reviewer_integration_id": 4269364,
+  "ruleset_fingerprints": [
+    "sha256:903f1f66c4f3519378395d2c04cc31465fcc0188e07028cd8b3f9d8ad1f1e28f",
+    "sha256:959ee027bbabd0f294b12373fe9865c82440a6cd38e7bd2a7fc7d0bea4f1958e"
+  ],
+  "verifier_app_id": 4274739,
+  "verifier_integration_id": 4274739,
+  "version": "pr-automation/v3"
+}
