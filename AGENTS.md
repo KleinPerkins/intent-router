@@ -39,3 +39,20 @@ AWA is the first consumer. Kernel-first: the consumer's safety holds with the ro
 
 P0 (done) → R-core → A0, with the consumer kernel-safety lanes (K0/K1/K2) in parallel; egress + R2
 after A0; C0 → C1 (promotion gate); R-resilience; R-surface-complete; M0 (migration design-only).
+
+
+<!-- doc-warden:begin -->
+## Documentation governance
+
+This repo's documentation structure is governed by `doc-warden`.
+
+| Artifact type | Location |
+|---|---|
+| Plans | `docs/plans/` — index at `docs/plans/README.md` |
+| ADRs | `docs/adr/` — index at `docs/adr/README.md` |
+| Runbooks | `docs/runbooks/` |
+| Glossary | `docs/GLOSSARY.md` (created when genuine terminology ambiguity arises) |
+
+**Policy:** `~/dev/_ops/doc-warden/POLICY.md`
+**Engine:** `~/dev/_ops/bin/doc-warden.sh check intent-router` (read-only health check)
+<!-- doc-warden:end -->
