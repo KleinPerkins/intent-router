@@ -21,7 +21,7 @@ def _c(verb: str, score: float) -> dict:
 
 class TestClassify(unittest.TestCase):
     def test_empty_is_none(self):
-        self.assertEqual(classify([]), "weak")
+        self.assertEqual(classify([]), "none")
 
     def test_all_zero_is_none(self):
         self.assertEqual(classify([_c("a", 0), _c("b", 0)]), "none")
