@@ -27,7 +27,8 @@ zero-link, and runnerless verification remain locked.
   /Users/laurence.duggan/.cursor/worktrees/intent-router/ayp7`: `Overall: CONFORMANT`.
   The repository-name-only form is working-directory-sensitive and failed from this worktree.
 - The five v1 contracts are frozen on disk. `intent-proposal/v1` records
-  `frozen_since: 2026-07-09` and `frozen_by: A0`.
+  `"frozen": "2026-07-09"` (the actual field name is `frozen`, not `frozen_since`); A0
+  provenance is in the `frozen_note` field, not a `frozen_by` field (no such field exists).
 - GitHub Actions are disabled, consistent with the runnerless policy.
 
 ## Reconciled claims
@@ -73,8 +74,12 @@ therefore describes contract/test coverage, not seven live production integratio
 - AWA's consumer loop consumes proposals while retaining kernel-owned consequence, confirmation,
   execution, and router-off behavior. Manual audit runs passed 81 loop tests, 34 egress tests, and
   4 router-present seam tests. Router-absent targeted proofs also passed.
-- Runnerless PR verification is active for intent-router, and the central assignment records an
-  intent-router custom verification job.
+- Runnerless PR verification is **configured** for intent-router (lock file verified, branch rules
+  require both `pr-automation / verify` and `pr-automation / job:repo.intent-router.m3-verify`),
+  and the central assignment records an intent-router custom verification job. However, execution
+  is **paused/unproven** as of 2026-09-02: PR #53 merged with empty `statusCheckRollup`,
+  indicating the controller had not yet executed against it. Configuration is not the same as
+  live execution — see the accepted G0-R0 plan §10 for the authoritative statement.
 - A machine-local subagent model-tier freshness monitor is installed for 09:00 daily execution;
   its handler passed a manual run on 2026-08-25. No scheduled run artifact existed at audit time.
 
