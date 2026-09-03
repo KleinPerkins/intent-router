@@ -56,3 +56,8 @@ This repo's documentation structure is governed by `doc-warden`.
 **Policy:** `~/dev/_ops/doc-warden/POLICY.md`
 **Engine:** `~/dev/_ops/bin/doc-warden.sh check intent-router` (read-only health check)
 <!-- doc-warden:end -->
+
+## Learned User Preferences
+
+- When invoking policy, name the exact governing authority and distinguish binding repository policy
+  from plan-specific stop conditions; never elevate a plan condition into a general policy requirement.
