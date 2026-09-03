@@ -779,6 +779,11 @@ class TestContractFreezeHardening(_CheckerAssertions, unittest.TestCase):
                 ("required_additive_phases invalid",),
             ),
             (
+                "required_additive_phases_empty",
+                change(lambda m: m.__setitem__("required_additive_phases", [])),
+                ("required_additive_phases invalid",),
+            ),
+            (
                 "deferred_phases_not_object",
                 change(lambda m: m.__setitem__("deferred_phases", [])),
                 ("deferred_phases invalid",),
@@ -1303,6 +1308,28 @@ class TestContractFreezeHardening(_CheckerAssertions, unittest.TestCase):
                     ),
                     needle,
                 )
+
+    def test_enum_promotion_unknown_path_fails_both_validators(self):
+        def mutate(cdir):
+            def update(contract, manifest):
+                contract["deferred_additions"]["test_unknown_enum"] = [
+                    {
+                        "key": "test_ext",
+                        "type": "enum-member",
+                        "target": "enum.does_not_exist",
+                    }
+                ]
+                manifest["enum_extensions"]["intent-feedback/v1"][
+                    "does_not_exist"
+                ] = ["test_ext"]
+                manifest["deferred_phases"]["test_unknown_enum"] = {
+                    "kind": "additive",
+                    "contracts": {"intent-feedback/v1": ["test_ext"]},
+                }
+
+            _edit_bundle(cdir, "intent-feedback/v1", update)
+
+        self._assert_both_fail(mutate, "unknown enum path")
 
     def test_banned_terms_optional_promotion_state_matrix(self):
         # The unmodified bundle is the real pending tier_a_consumer_contributed state.

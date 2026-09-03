@@ -272,7 +272,7 @@ def validate_manifest_structure(manifest):
                 )
 
     required_phases = manifest.get("required_additive_phases")
-    if not is_unique_string_array(required_phases):
+    if not is_unique_string_array(required_phases, require_nonempty=True):
         die("required_additive_phases invalid")
     phases = manifest.get("deferred_phases")
     if not isinstance(phases, dict):
@@ -326,6 +326,14 @@ def validate_deferred_declarations(schema, contract):
                     f"contract {schema} deferred declaration invalid: "
                     f"unsupported target {declaration['target']}"
                 )
+            if declaration["target"].startswith("enum."):
+                path = declaration["target"].removeprefix("enum.")
+                enums = contract.get("enums")
+                if not isinstance(enums, dict) or path not in enums:
+                    die(
+                        f"contract {schema} deferred declaration invalid: "
+                        f"unknown enum path {path}"
+                    )
 
 def compare_type_maps(errs, schema, path, actual, frozen, field_kind):
     if not isinstance(actual, dict):

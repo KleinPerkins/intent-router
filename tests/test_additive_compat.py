@@ -192,6 +192,15 @@ def _canonical_join(manifest, contracts):
         if not _supported_target(target):
             problems.append(f"{schema} unsupported target {target}")
             continue
+        if target.startswith("enum."):
+            path = target.removeprefix("enum.")
+            if (
+                path not in contracts[schema].get("enums", {})
+                or path
+                not in manifest["frozen_behavior"][schema].get("enum_floors", {})
+            ):
+                problems.append(f"{schema} {identity} unknown enum path {path}")
+                continue
         state, actual, expected = _promotion_state(declaration, manifest, contracts)
         if state == "partial":
             problems.append(f"{schema} {identity} partial state")
