@@ -1,63 +1,76 @@
 # G0-R authority-honesty and canonical-proof plan v1
 
-**Status:** DRAFT — 2026-09-03
+**Status:** ACCEPTED — 2026-09-03
 **Plan-type:** agentic-execution
-**Purpose:** Define the immediate router-owned authority-honesty delivery after merged G0-R0 and
-the separate verification-authority receipt required before composite G0 can close.
-**Accepted design authority:** `docs/plans/roadmap-revision-step-3-design-v2.md`, SHA-256
-`9f1098920e531818d1e845f7f11ed3480a7d86ffb738326c98f819835fc8afb1`.
+**Purpose:** Define the final router-owned authority-honesty reconciliation after merged G0-R0 and
+after separately accepted and delivered G0-V and G0-C-AWA children.
+**Accepted design authority:** `docs/plans/roadmap-revision-step-3-design-v3.md`, SHA-256
+`276693025446414411cf8cd016344b53d6179fd06bb791b9660f46f40fe3e184`.
 **G0-R0 implementation authority:** `docs/plans/g0-r0-contract-freeze-hardening-v4.md`, SHA-256
 `86579f52da3c124888678ad4fec5d8b54abdbb18f014b91a5896ed188052a4c0`.
 
-This draft does not itself authorize implementation. It exists because no accepted executable
-G0-R plan was present after G0-R0 merged. The operator supplied standing implementation/delivery
-authority on 2026-09-03; accepting this plan would settle the missing semantic authority without
-creating a second implementation-approval pause.
+This accepted plan does not authorize implementation. Implementation cannot begin until the exact
+G0-V and G0-C-AWA receipts required below exist and separate explicit implementation authority is
+given. No prior standing authorization overrides either gate.
 
 ---
 
 ## 1. Delivery identity and boundary
 
-G0-R is the immediate router-owned child of the composite G0 checkpoint after G0-R0. It makes the
-router's durable authorities describe built reality and the accepted revised roadmap without
-claiming that the separately owned consumer or verification children have converged.
+G0-R is the **final** router-owned child of composite G0, not the immediate child after G0-R0. It
+corrects the router's durable authorities only after independently owned verification and consumer
+work has produced exact receipts. It records those receipts without claiming their authority and
+without closing composite G0.
 
-This plan proposes two authority-correct receipts:
+### Hard preconditions and acyclic order
 
-1. **G0-R — router authority honesty:** one ordinary `KleinPerkins/intent-router` PR containing
-   router-owned ledger, contract-roadmap metadata, documentation, CLI taxonomy, local verification,
-   and provenance-test changes.
-2. **G0-V — canonical runnerless verification:** separately governed control-plane and generated
-   target-repository changes that replace the current `bash tests/run-tests.sh` job with canonical
-   `make verify`, then regenerate and merge the exact lock.
+1. G0-R0 is merged and its exact receipt remains valid.
+2. The accepted design authority is the exact v3 path and digest recorded above; any mismatch stops.
+3. G0-V is separately planned, accepted, and delivered as four bounded receipts:
+   - G0-V-R: one ordinary router PR making canonical `make verify` noexec-compatible and proving
+     hermetic release-pointer/source/runtime/byte integrity;
+   - G0-V-H: one `KleinPerkins/dev` host/control-plane PR changing and exact-image-qualifying the
+     intent-router command to `make verify`;
+   - G0-V-P: one protected recipe-only router PR through its owner gate; and
+   - G0-V-L: one generated lock-only router PR compiled from the merged default-branch recipe.
+4. G0-C-AWA is separately planned, accepted, delivered, and represented by one exact AWA-owned
+   receipt.
+5. G0-H remains absent unless its host owner proves a checkpoint projection is required. If that
+   proof appears, its separate host receipt becomes a precondition.
+6. Only then may G0-R implementation start. Its final ordinary exact head is the canary proving the
+   merged G0-V lock executes the strengthened canonical gate.
 
-G0-R may merge before G0-V, but composite G0 stays open until both have exact receipts and the
-separate G0-C-AWA child has its own authority-owned receipt. A host checkpoint projection is added
-only if its owner proves it is required; absence is not silently converted into a required change.
+This creates no cycle: G0-V-R supplies the local executable gate before host qualification; G0-V
+never waits for G0-R; G0-R only consumes already-merged G0-V/G0-C-AWA receipts. Each delivery keeps
+one owner, one repository, one PR, one receipt, and one rollback boundary.
 
 ### In scope for G0-R
 
-- Record the real merged G0-R0 child receipt in `status.yml`.
-- Introduce the pending composite G0 checkpoint and revised accepted phase ladder.
-- Regenerate `RESUME.md` around G0 rather than the obsolete monolithic R2 action.
-- Reconcile active durable docs and source comments with the built deterministic runtime,
-  frozen proposal contract, merged egress delivery, and accepted v2 architecture.
-- Re-label existing deferred additions to the split phases and register accepted v2 optional
+- Record the real merged G0-R0, G0-V-R/H/P/L, and G0-C-AWA child receipts in the in-progress G0
+  checkpoint. Record G0-H only if its owner proved and delivered it.
+- Introduce the pending composite G0 checkpoint and revised accepted phase ladder without marking
+  G0 done.
+- Regenerate `RESUME.md` around final G0-R delivery and the separate composite-G0 acceptance gate,
+  rather than obsolete monolithic R2 or missing-child work.
+- Reconcile active durable docs and source comments with the built deterministic runtime, frozen
+  proposal contract, merged egress delivery, accepted successor architecture, and completed child
+  receipts.
+- Re-label existing deferred additions to the split phases and register accepted successor optional
   proposal/feedback metadata as **pending declarations only**.
 - Register `intent-feedback/v1.operator_choice=none` as a pending enum extension only; do not add
   it to the authoritative enum floor or emit it.
-- Replace the misleading CLI `read_only` attribute with independent
-  `executes_consumer` and `mutates_router_state` properties without activating a stub or adding a
-  write path.
-- Make local `make verify` include the hermetic install lifecycle and exact release-pointer
-  provenance assertion.
-- Add regression tests for every authority correction.
+- Replace the misleading CLI `read_only` attribute with independent `executes_consumer` and
+  `mutates_router_state` properties without activating a stub or adding a write path.
+- Re-run and preserve the canonical local/remote gate and hermetic provenance tests delivered by
+  G0-V; G0-R does not re-own or rewrite that child.
+- Add behavior-specific regression tests for every G0-R authority correction.
 
 ### Out of scope for G0-R
 
-- `.github/pr-recipe.json`, `.github/pr-automation.lock.json`, `.github/pr-automation.json`, or
-  any host control-plane file; those belong to G0-V.
-- Marking composite G0 done.
+- `.github/pr-recipe.json`, `.github/pr-automation.lock.json`, `.github/pr-automation.json`,
+  `Makefile`, `install.sh`, any host control-plane file, or any G0-V-R/H/P/L receipt bytes; those
+  belong to the already-delivered G0-V child.
+- Marking composite G0 done or recording G0-R's not-yet-existing merge as if it already exists.
 - Marking any consumer-kernel lane done from a router-repository commit.
 - The G0-C-AWA consumer child, A0-P trial, F0/S0/R2a implementation, provider calls, state writers,
   fleet enrollment, global shelf binding, release/tag publication, or downstream synchronization.
@@ -65,8 +78,7 @@ only if its owner proves it is required; absence is not silently converted into 
   member to authoritative `enums`/`frozen_behavior.enum_floors`, or activating a writer.
 - Changing any frozen required key, existing enum member, rule text, invariant text, or machine
   check status.
-- Mutating the operator's installed runtime under `~/.local/share`; G0-R proves the installer
-  hermetically. A live reinstall is a separately authorized post-merge operation.
+- Mutating the operator's installed runtime under `~/.local/share`; all install proof is hermetic.
 
 ---
 
@@ -97,7 +109,8 @@ The following was freshly observed on 2026-09-03 before this plan was written.
     `a0345a2dcfeb0980999056131f1dae5040e5748e282fbca3a0f999e078efefff`
   - `checks/intent-contract-freeze.sh`:
     `0f4b693e5f6223a67c23fba98fe3379eaa97ff9ae9274e701bd51372585926dd`
-- No open intent-router PR existed at planning preflight.
+- No open intent-router PR existed at the original planning preflight. Draft PR #56 now carries
+  only this governed plan-hardening body.
 
 ### 2.2 Baseline verification
 
@@ -130,65 +143,80 @@ The documentation-governance check was `Overall: CONFORMANT`.
 - `intent_router/cli.py` labels future state-mutating verbs `read_only=True`.
 - `.github/pr-recipe.json` and its generated lock run only `bash tests/run-tests.sh`; canonical
   `make verify` also runs contract freeze, strict ledger verification, and install preflight.
+- The host qualification contract uses `tmpfs,noexec,nosuid,nodev`, while current `make verify`
+  directly invokes `./install.sh --check` and `make verify-install` directly invokes `./install.sh`.
+  That concrete incompatibility is why G0-V-R must precede host qualification; final G0-R cannot
+  absorb the fix without recreating a dependency cycle.
 - The live installed release pointer records commit
   `2da37df00f8617a0341f52d561909678b687bcd9`, not live router main. Its source and runtime are
   machine-local state outside this repository and are not mutated by G0-R.
 
 ---
 
-## 3. Authority conflict discovered during planning
+## 3. Authority conflicts and accepted v3 resolution
 
-Accepted design v2 places canonical runnerless correction inside one G0-R router PR. Current
-verification authority does not support that shape:
+Accepted design v3 resolves two source-confirmed authority conflicts.
 
-1. `KleinPerkins/dev::_ops/baseline/profiles/pr-automation/v3/profile.py` and its qualification
-   ledger own the qualified command, currently `["bash", "tests/run-tests.sh"]`.
-2. The control-plane `sync` operation stages exactly one serial phase:
-   `recipe`, `lock|relock`, or `assignment`.
-3. A lock is compiled from the already merged default-branch recipe. A candidate recipe and its
-   generated lock therefore cannot be truthfully merged as one ordinary target-repository PR.
-4. `.github` is a protected path. The reviewer App does not approve or arm protected-path PRs;
-   owner handling remains separate from ordinary reviewer-App merge.
+### 3.1 G0-V must be a design child, not a plan-only invention
 
-Therefore, changing router docs/source and hand-editing recipe+lock in one PR would either bypass
-the independent authority, create a lock from unmerged bytes, or violate the serial lifecycle.
+Accepted design v2 assigns canonical runnerless correction to G0-R and defines no G0-V. The initial
+G0-R Draft removed protected recipe/lock work from G0-R and invented G0-V without updating the
+accepted design. Independently, the live verification authority proves that a mixed G0-R shape is
+invalid:
 
-### Recommended resolution
+1. `KleinPerkins/dev::_ops/baseline/profiles/pr-automation/v3/profile.py` and
+   `qualification-ledger.json` own the reviewed/qualified custom command, currently
+   `["bash", "tests/run-tests.sh"]`.
+2. Control-plane `sync` stages exactly one serial `recipe`, `lock|relock`, or `assignment` phase.
+3. A lock is compiled from the already merged default-branch recipe. Candidate recipe and generated
+   lock bytes cannot truthfully land in one ordinary target-repository PR.
+4. `.github` is protected. Reviewer automation cannot approve or arm those changes; the sanctioned
+   owner gate is separate.
 
-Accept this plan's split:
+Accepted design v3 therefore explicitly creates G0-V and assigns each authority one
+delivery/receipt. V2 remains immutable and is superseded by v3.
 
-- G0-R remains one router-owned ordinary PR and excludes `.github`.
-- G0-V becomes a separate composite-G0 child under verification/control-plane authority:
-  1. update and qualify the host-owned command;
-  2. merge a protected recipe-only router PR through its sanctioned owner gate;
-  3. generate and merge a lock-only router PR from the merged recipe;
-  4. prove both required checks succeed on a later ordinary exact head using `make verify`.
+### 3.2 Final G0-R must follow authority-owned children
 
-This is not scope inflation. It is the minimum decomposition that preserves the authority map
-accepted in design v2. If the operator requires the literal one-router-PR shape instead, this plan
-must be revised only after the verification authority supplies an atomic candidate-recipe+lock
-operation. No such accepted operation was found.
+Accepted G0-R0 v4 states that the later G0-R convergence PR updates `status.yml`, `RESUME.md`, and
+the roadmap ledger only after all authority-owned G0 children complete. The initial G0-R Draft's
+"G0-R may merge before G0-V" sequence contradicted that authority and would force a second ledger
+reconciliation.
+
+Moving G0-R later exposes one concrete prerequisite: the controller's exact-image workspace is
+`tmpfs,noexec`, but current `make verify` directly executes `./install.sh`. G0-V therefore begins
+with a narrow ordinary router prerequisite (G0-V-R) that invokes scripts through interpreters and
+proves hermetic install provenance. Host qualification, recipe-only delivery, and generated
+lock-only delivery follow. G0-C-AWA is independent. Final G0-R then records all exact child receipts,
+runs as the first ordinary canary under the new lock, and leaves G0 `in_progress` for a separate
+operator acceptance/ledger-closeout gate.
+
+No accepted operation supports a combined recipe+lock change, no cross-owner receipt is fabricated,
+and no dependency points from G0-V back to G0-R.
 
 ---
 
 ## 4. Objective
 
-After G0-R:
+After G0-R merges:
 
 1. Every active router authority describes the current deterministic runtime, frozen contracts,
-   merged egress state, and accepted split roadmap.
+   merged egress state, accepted successor roadmap, and completed G0 child receipts.
 2. `status.yml` contains a recomputable G0-R0 done row pinned to PR #55's real merge and tests.
-3. `status.yml` contains an in-progress composite G0 row; `current_phase` is `G0`.
-4. The future phase IDs exactly match accepted design v2 while preserving completed history and
+3. `status.yml` contains an in-progress composite G0 row that records exact G0-V and G0-C-AWA
+   receipts (plus G0-H only if proven required); `current_phase` is `G0`.
+4. The future phase IDs exactly match accepted design v3 while preserving completed history and
    external consumer-kernel rows.
-5. `RESUME.md` directs a fresh session to G0 convergence and forbids starting F0/S0/R2a early.
+5. `RESUME.md` directs a fresh session to observe the real G0-R merge receipt and present the
+   separate composite-G0 acceptance gate; it forbids starting F0/S0/R2a early.
 6. Pending v1 additions are path-qualified and machine-checked without changing authoritative
    optional fields, enum floors, or writer behavior.
 7. Every CLI verb truthfully states whether it can mutate router-private state while every verb
    remains unable to execute a consumer.
-8. Local `make verify` exercises tests, freeze, strict status, static install checks, and the
-   hermetic install/uninstall lifecycle with an exact source-commit release pointer.
-9. G0-R has an exact merged receipt but composite G0 remains open pending G0-V and G0-C-AWA.
+8. Canonical `make verify` and hermetic release-pointer/source/runtime/byte-integrity tests remain
+   green locally and under both required runnerless check contexts on the exact G0-R head.
+9. G0-R has an exact merged receipt for operator review, but composite G0 remains `in_progress`
+   until its separate acceptance and ledger-closeout delivery.
 
 ---
 
@@ -205,8 +233,8 @@ After G0-R:
 - Zero-link remains green.
 - Completed P0, R-core, A0, and egress IDs, PRs, commits, files, and passed-test meaning are
   preserved. Factual prose may be corrected; evidence is not rewritten.
-- G0-R0 merged receipt is immutable evidence.
-- G0-R does not close composite G0.
+- G0-R0 and completed G0-V/G0-C-AWA receipts are immutable inputs, not router-owned claims.
+- G0-R does not close composite G0; its merge receipt goes to a separate acceptance gate.
 - No paid or Actions runner is introduced.
 
 ### Non-goals
@@ -214,7 +242,7 @@ After G0-R:
 - No state controller, raw store, provider, reranker, typed writer, calibration, fleet selector,
   new consumer, global release, shelf pointer, registry enrollment, or migration.
 - No remote or machine-local install mutation.
-- No hand-generated runner lock.
+- No G0-V or G0-C-AWA implementation and no hand-generated runner lock.
 - No self-approval, auto-merge arming, direct main push, admin bypass, force push, or failing-check
   bypass.
 
@@ -259,8 +287,8 @@ W2
 S3
 ```
 
-The old pending IDs `R2`, `R-resilience`, and `R-surface` disappear only because accepted design v2
-supersedes their future meaning. Completed IDs do not change.
+When design v3 is accepted, the old pending IDs `R2`, `R-resilience`, and `R-surface` disappear
+because its revised ladder supersedes their future meaning. Completed IDs do not change.
 
 ### 6.2 G0-R0 row
 
@@ -291,37 +319,46 @@ is an ancestor of current HEAD.
 ### 6.3 Composite G0 row
 
 Add `G0` as `in_progress`, with empty `pr`, `commit`, `passed_test_ids`, and `files`. Its
-`current_gate` states:
+`current_gate` records exact immutable identifiers for:
 
-- G0-R0 merged and recorded;
-- G0-R implementation/merge receipt pending until this future implementation PR merges;
-- G0-V canonical runnerless receipt pending;
-- G0-C-AWA receipt pending under AWA authority;
-- G0-H is not required unless host authority later proves a checkpoint projection is necessary;
-- composite G0 cannot become `done` in the G0-R implementation PR because its own squash merge and
-  the other child receipts do not yet exist.
+- merged G0-R0;
+- completed G0-V-R host-compatible local-gate receipt;
+- completed G0-V-H host command/qualification receipt;
+- completed G0-V-P protected recipe-only receipt;
+- completed G0-V-L generated lock-only receipt and compiler/merged-recipe provenance;
+- completed G0-C-AWA receipt under AWA authority;
+- G0-H only if host authority proved it required and delivered it; otherwise state that no proof
+  made it required;
+- final G0-R implementation/merge receipt pending until this future implementation PR really
+  merges; and
+- separate composite-G0 operator acceptance/ledger closeout pending after that merge.
 
-Set `current_phase: G0`. Do not add a self-referential `G0-R done` row.
+Set `current_phase: G0`. Do not add a self-referential `G0-R done` row and do not mark G0 `done` in
+the G0-R implementation PR. The later acceptance/closeout delivery may record the observed G0-R
+merge only after it exists.
 
 ### 6.4 External kernel lanes
 
 Keep `K0-K1` and `K2` as `track: consumer-kernel` and `pending`. Correct their `current_gate` text
-to distinguish active router-side reference tests from the missing exact G0-C-AWA receipt. A
-router commit cannot satisfy a done row that requires an external repository commit, and the
-current verifier resolves commits only in this repository.
+to distinguish active router-side reference tests from the exact G0-C-AWA receipt without
+converting that receipt into unsupported lane-completion evidence. A router commit cannot satisfy
+a done row that requires an external repository commit, and the current verifier resolves commits
+only in this repository.
 
 ### 6.5 Resume pointer
 
 `RESUME.md` records:
 
 - last completed router phase: egress;
-- completed G0 child: G0-R0;
-- current checkpoint: G0;
+- completed G0 children: G0-R0, every G0-V receipt, and G0-C-AWA (plus G0-H only if required);
+- current checkpoint: G0, still `in_progress`;
 - A0 implementation complete, A0-P human proof pending;
-- exact next router action after G0-R merge: obtain accepted G0-V authority and its serial
-  recipe/lock receipts;
-- G0-C-AWA may proceed only under its separate repository authority;
-- F0, S0, and R2a do not start until composite G0 closes;
+- exact next action before G0-R merge: finish the final ordinary G0-R delivery only after all
+  precondition receipts remain valid and both required check contexts pass on its exact head;
+- exact next action after G0-R merge: observe its real merge receipt and present the separate
+  composite-G0 acceptance/ledger-closeout gate;
+- no new G0-V or G0-C-AWA work is attempted from this router reconciliation;
+- F0, S0, and R2a do not start until composite G0 is separately accepted and closed; and
 - R2a is shadow-only and depends on S0/provider gates; R2c owns typed parameters.
 
 ---
@@ -476,8 +513,11 @@ Keep the existing `K0-K1`, `K2`, and `R-core` entries in `deferred_phases` as
 | `W2` | no-schema-change | consumer onboarding against frozen interfaces |
 | `S3` | no-schema-change | conditional model behavior, no new declared shape in this plan |
 
-The old phase keys `R2`, `R-resilience`, and `R-surface` must be absent after the coordinated
-re-label. Tests assert the exact new records, all pending states, and the one pending enum extension.
+Before inserting replacements, remove obsolete `R2`, `R-resilience`, and `R-surface` keys from
+**both** `deferred_phases` and `required_additive_phases`. Old `R2` currently owns two declarations
+that split by behavior: catalog `extractor`/`confirm_literal` move to R2c, while proposal
+`rerank_source` moves to R2a. The three old keys must be absent after the coordinated re-label.
+Tests assert the exact new records, all pending states, and the one pending enum extension.
 
 ### 7.6 Constitution annotations
 
@@ -513,10 +553,12 @@ Replace every `VERBS` entry's `read_only` key with:
 | `rebuild` | `True` |
 | `status` | `False` |
 
-`phrasebook` is conservatively marked mutating because its declared surface includes `apply`;
-future subcommand descriptors may distinguish diff/review from apply. This metadata does not
-activate a handler. `ACTIVE_VERBS` remains exactly the four R-core verbs, and no storage primitive
-is added.
+`phrasebook` is conservatively marked mutating because its declared surface includes future
+`apply`; this is a placeholder, not a claim that diff/review mutate. Place an inline marker adjacent
+to its descriptor stating: `C0 revisit before activation: split diff/review (non-mutating) from
+apply (mutating) if phrasebook subcommands are decomposed.` C0 must resolve that marker before
+activating or decomposing phrasebook subcommands. This metadata does not activate a handler.
+`ACTIVE_VERBS` remains exactly the four R-core verbs, and no storage primitive is added.
 
 Update future phase labels:
 
@@ -537,7 +579,7 @@ non-mutating.
 
 - `README.md`: current built floor, functional commands, proposal frozen in A0, G0 current,
   runnerless verification, and no global enrollment yet.
-- `ARCHITECTURE.md`: accepted v2 authority map, separate proposal/state paths, host-owned fleet,
+- `ARCHITECTURE.md`: accepted v3 authority map, separate proposal/state paths, host-owned fleet,
   State Controller boundary, 90-day raw/derived baseline, provider entry gate, split phases,
   match-strength language, and composite G0. Mark every unbuilt mechanism as future.
 - `SECURITY.md`: recompute each row against active tests; describe runnerless Apps/rulesets instead
@@ -551,36 +593,46 @@ non-mutating.
   historically accurate built-state prose. Historical accepted plans, freeze history, and negative
   regression fixtures remain unchanged.
 
-### 9.2 Local canonical gate
+### 9.2 Canonical gate consumed from G0-V
 
-- Update Make help text from P0 to the current deterministic floor.
-- Make `verify` invoke `verify-install` after existing tests, freeze, strict status, and static
-  install checks.
-- Strengthen `verify-install` so the throwaway release pointer must name:
-  - schema `intent-release-pointer/v1`;
-  - current package version;
-  - current source `git rev-parse HEAD`;
-  - the throwaway runtime path; and
-  - a valid install timestamp.
-- Confirm the installed runtime's copied package/contracts/checker bytes match source before
-  uninstalling the throwaway tree.
-- Do not touch the real HOME/XDG paths.
+G0-V-R, not final G0-R, owns the prerequisite mutations to `Makefile` and `install.sh`. Its exact
+receipt must prove:
 
+- every installer invocation used under the controller is interpreter-invoked and compatible with
+  the qualified `tmpfs,noexec` workspace;
+- local `make verify` invokes `verify-install` after tests, freeze, strict status, and static install;
+- the throwaway release pointer names schema `intent-release-pointer/v1`, current package version,
+  source commit equal to `git rev-parse HEAD`, exact source root, throwaway runtime path, and a valid
+  install timestamp;
+- copied installed package, contracts, and checker bytes match source before uninstall; and
+- no real HOME/XDG path is touched.
+
+G0-R consumes and re-runs these exact behavior tests without modifying `Makefile` or `install.sh`:
+
+- `tests.test_authority_honesty.TestHermeticReleasePointer.test_schema_and_version_are_exact`
+- `tests.test_authority_honesty.TestHermeticReleasePointer.test_source_commit_matches_source_head`
+- `tests.test_authority_honesty.TestHermeticReleasePointer.test_source_and_runtime_are_exact_and_hermetic`
+- `tests.test_authority_honesty.TestHermeticReleasePointer.test_installed_package_contract_and_checker_bytes_match_source`
+- `tests.test_authority_honesty.TestHermeticReleasePointer.test_real_home_and_xdg_roots_are_untouched`
+- `tests.test_authority_honesty.TestHermeticReleasePointer.test_wrong_schema_commit_source_or_runtime_is_rejected`
+- `tests.test_authority_honesty.TestHermeticReleasePointer.test_mismatched_installed_bytes_are_rejected`
+
+These tests must make positive assertions over the generated pointer/runtime and negative assertions
+against real HOME/XDG targets; file existence or JSON parse alone is insufficient. G0-R's final
+ordinary exact head must pass both current runnerless contexts under the merged G0-V lock.
 `meta.yml.provenance_ref: main` remains untouched because immutable global release pinning is
-explicitly deferred to R-surface-complete. G0-R proves source install provenance; it does not
-publish a tag or global release.
+explicitly deferred to R-surface-complete.
 
 ---
 
 ## 10. G0-R implementation-file allowlist
 
-The future G0-R implementation PR's changed path set must equal exactly:
+The future final G0-R implementation PR's changed path set must equal exactly:
 
 ```text
 AGENTS.md
 ARCHITECTURE.md
 CONSTITUTION.md
-Makefile
 README.md
 RESUME.md
 ROLLBACK.md
@@ -592,7 +644,6 @@ contracts/intent-constitution.v1.json
 contracts/intent-feedback.v1.json
 contracts/intent-map.v1.json
 contracts/intent-proposal.v1.json
-install.sh
 intent_router/__init__.py
 intent_router/catalog.py
 intent_router/cli.py
@@ -617,15 +668,21 @@ tests/test_proposal_exercise.py
 tests/test_status_verify.py
 ```
 
-`tests/test_authority_honesty.py` is new. Every other path exists. No `.github`, plan, archive,
-runtime-state, consumer, host, shelf, or registry path may appear.
+`tests/test_authority_honesty.py` is introduced by G0-V-R and extended here. Every other path exists.
+No `.github`, `Makefile`, `install.sh`, plan, archive, runtime-state, consumer, host, shelf, or
+registry path may appear.
 
 ---
 
 ## 11. Work items
 
-Tasks run in order T1 → T2 → T3 → T4 → T5 → T6. T2 depends on the ledger phase names from T1.
-T3 and T4 consume those names. T5 establishes the canonical local gate before delivery.
+Hard preflight precedes every task: design v3 accepted; G0-V-R/H/P/L and G0-C-AWA exact receipts
+present and still valid; G0-H either not required by its owner or delivered. If any precondition is
+missing, no G0-R implementation file may change.
+
+Tasks then run in order T1 → T2 → T3 → T4 → T5 → T6. T2 depends on the ledger phase names from T1.
+T3 and T4 consume those names. T5 re-verifies the already-delivered G0-V canonical gate before
+final delivery.
 
 ### Task G0-R-T1 — Reconcile ledger and resume
 
@@ -636,21 +693,31 @@ T3 and T4 consume those names. T5 establishes the canonical local gate before de
 - `RESUME.md`
 
 **Interfaces:**
-- Consumes: PR #55 merged receipt and accepted v2 phase ladder
-- Produces: exact G0-R0 done row, pending composite G0, revised phase parser, current resume pointer
+- Consumes: PR #55 merged receipt, accepted v3 phase ladder, exact G0-V/G0-C-AWA receipts, and
+  optional G0-H receipt only if required
+- Produces: exact G0-R0 done row, receipt-complete but still in-progress composite G0, revised phase
+  parser, current resume pointer
 
 **Steps:**
 
 - [ ] Add the G0-R0 row exactly as §6.2.
-- [ ] Add the composite G0 row exactly as §6.3.
+- [ ] Add the composite G0 row exactly as §6.3 with exact G0-V/G0-C-AWA receipts; do not retain
+  "pending child" placeholders for deliveries that are hard preconditions.
 - [ ] Replace old future phase rows with the exact §6.1 order.
 - [ ] Preserve all completed P0/R-core/A0/egress evidence fields byte-for-byte except factual
   `current_gate` corrections that tests explicitly cover.
 - [ ] Keep K lanes external/pending and correct their evidence wording.
 - [ ] Set `current_phase: G0`.
-- [ ] Update both exact phase-list constants.
-- [ ] Add tests that old monolithic IDs are absent, all revised IDs occur exactly once, G0-R0
-  evidence is recomputable, G0 is not done, and current phase is G0.
+- [ ] Keep `tests.test_status_verify._ALL_PHASES` as an independent exact oracle rather than
+  importing production `EXPECTED_PHASES`; assert the two exact lists agree through behavior.
+- [ ] Replace the hard-coded parser assertion `len(...)=12` with
+  `len(data["phases"]) == len(_ALL_PHASES)`.
+- [ ] Rewrite `test_missing_phase_is_caught` to remove one explicitly named phase (use `R2c`) by
+  name and assert the diagnostic names that same `R2c`; do not drop the new last phase while
+  retaining stale M0 wording.
+- [ ] Assert real-ledger IDs equal `_ALL_PHASES` exactly and in order, old monolithic IDs are absent,
+  revised IDs occur once, G0-R0 evidence is recomputable, G0 remains `in_progress`, required child
+  receipt tokens are present, and current phase is G0.
 - [ ] Regenerate `RESUME.md` per §6.5.
 
 **Acceptance:**
@@ -663,7 +730,8 @@ make status-verify
 **Rollback:** Governed revert before any later ledger row depends on the revised IDs. After a later
 receipt uses them, forward-fix only.
 
-**Dependencies:** G0-R0 merged receipt.
+**Dependencies:** Accepted design v3; exact completed G0-R0, G0-V-R/H/P/L, and G0-C-AWA
+receipts; G0-H receipt only if its owner proved it required.
 
 ---
 
@@ -682,20 +750,28 @@ receipt uses them, forward-fix only.
 - `tests/test_deferred_spec.py`
 
 **Interfaces:**
-- Consumes: G0-R0 complete freeze guard and accepted v2 optional-field tables
+- Consumes: G0-R0 complete freeze guard and accepted v3 optional-field tables
 - Produces: split-phase pending declarations, pending `none` enum provenance, synchronized spec
   phase annotations
 
 **Steps:**
 
-- [ ] Apply §§7.1–7.5 exactly.
+- [ ] Remove obsolete `R2`, `R-resilience`, and `R-surface` from both
+  `deferred_phases` and `required_additive_phases` before inserting the exact §§7.1–7.5
+  replacements. Move old R2 catalog declarations to R2c and its proposal declaration to R2a.
 - [ ] Keep authoritative optional fields and enum floors byte-identical to merge
   `e30644cfac2470143f45e89eff37b612dc9dbc28`.
 - [ ] Apply §7.6 phase annotations without changing statuses or test IDs.
+- [ ] In `contracts/intent-proposal.v1.json`, update only `additive_note`'s anticipated phase phrase
+  from `A0/R2` to `A0/R2a`; preserve every other authoritative frozen statement verbatim.
 - [ ] Update additive tests for exact split-phase coverage and the non-empty pending enum extension.
+- [ ] Preserve the bidirectional canonical join, then replace **both** empty-state assertions in
+  `test_enum_extensions_bidirectional`: assert records exactly equal
+  `{("intent-feedback/v1", "operator_choice", "none")}` and assert the per-schema map is exactly
+  `{"intent-catalog/v1": {}, "intent-map/v1": {}, "intent-feedback/v1":
+  {"operator_choice": ["none"]}, "intent-constitution/v1": {}, "intent-proposal/v1": {}}`.
 - [ ] Add explicit assertions that every new declaration is pending on both actual/frozen surfaces.
-- [ ] Add explicit assertion that `none` is absent from actual/frozen enum members and no writer
-  emits it.
+- [ ] Assert `none` is absent from actual/frozen enum members and no writer emits it.
 - [ ] Update contract-freeze fixture mutations that currently hard-code the old `R2` phase key.
 
 **Acceptance:**
@@ -735,19 +811,39 @@ depends on a new phase label. No authoritative field is removed because none is 
 - `tests/test_proposal_exercise.py`
 
 **Interfaces:**
-- Consumes: accepted v2 design, real merged egress/G0-R0 receipts, T1/T2 phase names
+- Consumes: accepted v3 design, real merged egress/G0-R0 receipts, T1/T2 phase names
 - Produces: current durable architecture/security/rollback/operator entrypoints and stale-claim
   regressions
 
 **Steps:**
 
 - [ ] Apply §9.1.
-- [ ] Add file-specific regressions for obsolete current-state claims; do not ban historically
-  accurate P0/provisional language in accepted plans or freeze-history tests.
-- [ ] Assert README and ARCHITECTURE call `intent-proposal/v1` frozen.
-- [ ] Assert SECURITY names the runnerless required checks and no removed workflow.
-- [ ] Assert ROLLBACK no longer says every phase revert is always safe.
-- [ ] Assert active docs distinguish implemented, pending proof, and future behavior.
+- [ ] Add file-specific regressions for obsolete current-state claims; do not scan accepted plans or
+  freeze-history fixtures where P0/provisional language remains historically accurate.
+- [ ] Add exact ID
+  `tests.test_authority_honesty.TestProposalFreezeTruth.test_readme_and_architecture_name_proposal_frozen_not_provisional`;
+  positively require each named surface to state the A0-frozen status and negatively reject the
+  exact stale README fragment ``intent-proposal/v1` is **PROVISIONAL**`` plus the old
+  ARCHITECTURE table cell `**PROVISIONAL** (freeze → A0)`.
+- [ ] Add exact ID
+  `tests.test_authority_honesty.TestProposalFreezeTruth.test_runtime_comments_do_not_call_proposal_provisional`;
+  scan only active runtime/package/fixture surfaces and reject the exact
+  `PROVISIONAL until A0` current-state claim while allowing clearly historical freeze prose.
+- [ ] Add exact ID
+  `tests.test_authority_honesty.TestRunnerlessTruth.test_security_names_both_current_runnerless_check_contexts`;
+  require both exact names `pr-automation / verify` and
+  `pr-automation / job:repo.intent-router.m3-verify`.
+- [ ] Add exact ID
+  `tests.test_authority_honesty.TestRunnerlessTruth.test_security_does_not_name_removed_actions_workflow`;
+  reject `.github/workflows/baseline.yml` and any claim that GitHub Actions is the active verifier.
+- [ ] Add exact ID
+  `tests.test_authority_honesty.TestRollbackTruth.test_rollback_rejects_universal_safety_claim_and_names_dependency_boundary`;
+  reject `a phase revert is always safe` and `Why this is always safe`, and require both the
+  pre-dependency governed-revert and post-dependency forward-fix rules.
+- [ ] Add exact ID
+  `tests.test_authority_honesty.TestBuiltStateTruth.test_active_docs_distinguish_implemented_pending_proof_and_future`;
+  require all three states on the named active docs rather than accepting a document that merely
+  avoids one stale phrase.
 
 **Acceptance:**
 
@@ -779,6 +875,8 @@ reconciled statements, forward-fix instead of restoring stale prose.
 **Steps:**
 
 - [ ] Apply the exact §8 property and phase maps.
+- [ ] Add the exact inline C0 revisit marker beside `phrasebook`; tests require the marker while the
+  aggregate placeholder remains `mutates_router_state=True`.
 - [ ] Update help/docstrings to say current active commands are non-mutating, not that the entire
   future router has no private-state mutation.
 - [ ] Update doctor future labels to R-resilience-b without claiming the future checks are built.
@@ -797,41 +895,54 @@ python3 -m unittest tests.test_cli tests.test_cli_stub tests.test_doctor tests.t
 
 ---
 
-### Task G0-R-T5 — Canonicalize local verification and install provenance
+### Task G0-R-T5 — Re-verify canonical gate and install provenance
 
 **Files:**
+- `tests/test_authority_honesty.py` (already extended by T3; no G0-V test weakening)
+
+**Read-only inputs:**
 - `Makefile`
-- `bin/intent`
 - `install.sh`
-- `intent_router/__init__.py`
-- `pyproject.toml`
-- `tests/test_authority_honesty.py`
+- the exact G0-V-R/H/P/L receipts
 
 **Interfaces:**
-- Consumes: current standalone installer and G0 built-state wording
-- Produces: canonical local `make verify` including hermetic install lifecycle and exact-pointer
-  proof
+- Consumes: G0-V's noexec-compatible canonical gate, hermetic provenance tests, generated lock, and
+  unchanged required check names
+- Produces: G0-R-local proof that those prerequisites still hold; no duplicate gate implementation
 
 **Steps:**
 
-- [ ] Apply §9.2.
-- [ ] Remove present-tense P0/stub-only claims from package/launcher/installer metadata.
-- [ ] Run `make verify-install` with throwaway HOME/XDG roots and inspect the exact pointer before
-  uninstall.
-- [ ] Prove the command touches no real HOME/XDG target.
-- [ ] Keep package version `0.1.0`; this task corrects provenance proof, not release versioning.
+- [ ] Run each exact `TestHermeticReleasePointer` ID from §9.2 and prove it asserts schema/version,
+  source commit, exact source/runtime paths, byte parity, and real-HOME/XDG non-mutation.
+- [ ] Assert `Makefile` invokes installer scripts through `bash` wherever the noexec controller may
+  exercise them and that `verify` includes `verify-install`.
+- [ ] Run `make verify-install` with throwaway HOME/XDG roots; inspect pointer/runtime before
+  uninstall and verify teardown.
+- [ ] Confirm the tests reject a wrong schema, source commit, source path, runtime path, or copied
+  byte in controlled fixtures; a parse-only or existence-only test is insufficient.
+- [ ] Confirm package version remains `0.1.0`; this task proves provenance, not release versioning.
+- [ ] Do not modify `Makefile` or `install.sh`; any required change means G0-V is incomplete and is
+  a stop condition, not scope to absorb into G0-R.
 
 **Acceptance:**
 
 ```bash
+python3 -m unittest \
+  tests.test_authority_honesty.TestHermeticReleasePointer.test_schema_and_version_are_exact \
+  tests.test_authority_honesty.TestHermeticReleasePointer.test_source_commit_matches_source_head \
+  tests.test_authority_honesty.TestHermeticReleasePointer.test_source_and_runtime_are_exact_and_hermetic \
+  tests.test_authority_honesty.TestHermeticReleasePointer.test_installed_package_contract_and_checker_bytes_match_source \
+  tests.test_authority_honesty.TestHermeticReleasePointer.test_real_home_and_xdg_roots_are_untouched \
+  tests.test_authority_honesty.TestHermeticReleasePointer.test_wrong_schema_commit_source_or_runtime_is_rejected \
+  tests.test_authority_honesty.TestHermeticReleasePointer.test_mismatched_installed_bytes_are_rejected
 make verify-install
 make verify
 ```
 
-**Rollback:** Revert canonical-gate/prose changes together. G0-V must not switch the remote command
-until this local gate is merged and green.
+**Rollback:** No independent T5 mutation. T3 owns any same-file documentation-test changes; G0-V's
+owner and rollback rules govern canonical-gate defects.
 
-**Dependencies:** T1–T4.
+**Dependencies:** T1–T4 and all exact G0-V receipts.
 
 ---
 
@@ -841,8 +952,8 @@ until this local gate is merged and green.
 - Every path in §10, exactly; no others
 
 **Interfaces:**
-- Consumes: T1–T5
-- Produces: merged G0-R router receipt without closing composite G0
+- Consumes: accepted v3, accepted G0-R plan, exact precondition receipts, and T1–T5
+- Produces: merged final G0-R router receipt for the separate composite-G0 acceptance gate
 
 **Steps:**
 
@@ -859,36 +970,51 @@ until this local gate is merged and green.
 - [ ] Do not arm auto-merge. Let the reviewer App own ordinary approval/arming.
 - [ ] Capture base, exact head, merge, changed paths, both required successful checks, focused/local
   proof, and doc-warden result after governed merge.
-- [ ] Leave `G0` in progress. A later convergence update records the G0-R merge alongside G0-V and
-  G0-C-AWA.
+- [ ] Require both exact current contexts — `pr-automation / verify` and
+  `pr-automation / job:repo.intent-router.m3-verify` — to succeed on the final G0-R head; this is
+  the ordinary canary for the already-merged G0-V lock.
+- [ ] Leave `G0` in progress. After the real G0-R merge exists, present its exact receipt with the
+  already-recorded child receipts at the separate operator acceptance/ledger-closeout gate.
 
-**Acceptance:** Exact merged G0-R receipt exists; all local/remote checks are tied to the final head;
-no `.github` or external authority changed; composite G0 remains open.
+**Acceptance:** Exact merged final G0-R receipt exists; all local/remote checks are tied to the final
+head; no `.github`, `Makefile`, `install.sh`, or external authority changed; composite G0 remains
+open pending explicit acceptance.
 
 **Rollback:** Before any downstream phase depends on reconciled IDs/declarations, revert G0-R through
 one governed PR. After dependency, forward-fix. Never roll back G0-R0 freeze hardening as part of
 this revert.
 
-**Dependencies:** T1–T5; accepted plan (standing 2026-09-03 implementation authority already
-exists).
+**Dependencies:** Accepted design v3; accepted G0-R v1; exact valid G0-R0, G0-V-R/H/P/L, and
+G0-C-AWA receipts (plus G0-H only if required); T1–T5; explicit implementation authorization.
 
 ---
 
-## 12. Separate G0-V verification-authority handoff
+## 12. Prior G0-V verification-authority handoff
 
-This plan does not authorize or mutate G0-V. Its later accepted plan must bind:
+This plan neither authorizes nor mutates G0-V. Before G0-R implementation, a separately accepted
+G0-V plan must have delivered and evidenced this acyclic sequence:
 
-1. host-owned command authority and qualification evidence for `["make", "verify"]`;
-2. one protected recipe-only target PR;
-3. one generated lock-only target PR compiled from the merged recipe;
-4. exact owner gates for protected paths without agent self-approval or automation bypass;
-5. controller doctor/parity before and after each serial phase;
-6. both required check contexts remaining unchanged;
-7. a final ordinary canary head proving the new lock executes canonical `make verify`; and
-8. rollback in reverse authority order.
+1. **G0-V-R — router prerequisite:** one ordinary router PR changes only the narrow canonical-gate
+   surface required to make `make verify` compatible with `tmpfs,noexec`, include hermetic
+   `verify-install`, and add the exact §9.2 provenance/byte/non-mutation tests.
+2. **G0-V-H — host authority:** one `KleinPerkins/dev` PR updates both
+   `M3_CUSTOM_COMMANDS["KleinPerkins/intent-router"]` and its qualification-ledger disposition to
+   `["make", "verify"]`, with exact controller image/limits/source evidence and control-plane tests.
+3. **G0-V-P — protected recipe:** after G0-V-H merges, one owner-gated protected recipe-only router
+   PR generated by control-plane `sync`; no lock or ordinary product file shares the PR.
+4. **G0-V-L — generated lock:** after G0-V-P merges, one lock-only router PR compiled from the
+   merged default-branch recipe by the qualified compiler/release; no hand edit and no candidate
+   recipe base.
+5. Run controller doctor/remote parity before and after each serial phase. Keep the two required
+   contexts unchanged. Record exact base/head/merge/check and digest/provenance receipts for each
+   delivery.
+6. Roll back in reverse authority order only while no dependent delivery exists; after dependency,
+   forward-fix. Agents never self-approve, pre-arm, bypass a failing check, or use paid runners.
 
-If the control plane gains an accepted atomic recipe+lock operation before execution, revise this
-plan rather than assuming it.
+G0-V completion does not wait for G0-R. Exact-image qualification proves the command contract; the
+final G0-R ordinary exact head is the target canary under the merged lock. If that canary fails,
+G0-R stops and G0-V owners repair or roll back their own authority—G0-R does not edit protected or
+host state.
 
 ---
 
@@ -897,23 +1023,35 @@ plan rather than assuming it.
 | Requirement | Evidence |
 |---|---|
 | Live base and receipt | fetched `origin/main`; PR #55 base/head/merge and exact-head check API |
+| Design authority honest | accepted v3 path/digest match the immutable design authority; v2 remains byte-identical and superseded |
+| Required child sequencing | exact G0-V-R/H/P/L and G0-C-AWA receipts exist before any G0-R edit; optional G0-H only if owner-proven |
 | G0-R0 ledger honesty | focused listed tests + strict PR/commit ancestry |
-| Revised phase completeness | status parser/test exact-list equality |
+| Revised phase completeness | independent `_ALL_PHASES` exact oracle; parser count derived from it; named `R2c` removal/assertion regression |
 | No completed-history rewrite | base-vs-head field comparison for P0/R-core/A0/egress |
 | No authoritative contract promotion | structured comparison of floors/options/enums/statuses |
 | Pending declarations coherent | additive validator + freeze checker |
-| Pending enum is writer-last | `none` absent actual/floor; enum extension present; no writer |
+| Old split keys removed | `R2`, `R-resilience`, `R-surface` absent from both manifest phase containers; R2 catalog→R2c and proposal→R2a |
+| Pending enum is writer-last and bidirectional | exact enum-extension record/map assertions for `{intent-feedback/v1, operator_choice, none}`; `none` absent actual/floor/writer |
+| Proposal additive prose current | `intent-proposal.v1.json::additive_note` says A0/R2a; all other frozen meaning equal to base |
 | Constitution meaning preserved | rule/invariant/status equality + phase-label tests |
-| CLI taxonomy truthful | exact metadata-map tests; active handlers unchanged |
+| CLI taxonomy truthful | exact metadata map; inline C0 phrasebook-revisit marker; active handlers unchanged |
 | CR1/CR2/KI unchanged | no-execution tests + no new consumer/runtime path |
-| Current docs honest | `tests.test_authority_honesty` |
-| Local canonical gate | `make verify` includes `make verify-install` |
-| Release pointer provenance | throwaway pointer commit/runtime/source/bytes assertions |
+| Proposal freeze truth | `tests.test_authority_honesty.TestProposalFreezeTruth.test_readme_and_architecture_name_proposal_frozen_not_provisional` and `.test_runtime_comments_do_not_call_proposal_provisional` |
+| Runnerless documentation truth | `tests.test_authority_honesty.TestRunnerlessTruth.test_security_names_both_current_runnerless_check_contexts` and `.test_security_does_not_name_removed_actions_workflow` |
+| Rollback not universally safe | `tests.test_authority_honesty.TestRollbackTruth.test_rollback_rejects_universal_safety_claim_and_names_dependency_boundary` |
+| Built/pending/future states explicit | `tests.test_authority_honesty.TestBuiltStateTruth.test_active_docs_distinguish_implemented_pending_proof_and_future` |
+| Hermetic pointer schema/version | `tests.test_authority_honesty.TestHermeticReleasePointer.test_schema_and_version_are_exact` |
+| Hermetic source commit | `tests.test_authority_honesty.TestHermeticReleasePointer.test_source_commit_matches_source_head` |
+| Hermetic source/runtime paths | `tests.test_authority_honesty.TestHermeticReleasePointer.test_source_and_runtime_are_exact_and_hermetic` |
+| Installed byte integrity | `tests.test_authority_honesty.TestHermeticReleasePointer.test_installed_package_contract_and_checker_bytes_match_source` |
+| Real HOME/XDG untouched | `tests.test_authority_honesty.TestHermeticReleasePointer.test_real_home_and_xdg_roots_are_untouched` |
+| Pointer mismatch tests bite | `tests.test_authority_honesty.TestHermeticReleasePointer.test_wrong_schema_commit_source_or_runtime_is_rejected` |
+| Installed-byte mismatch test bites | `tests.test_authority_honesty.TestHermeticReleasePointer.test_mismatched_installed_bytes_are_rejected` |
 | Zero-link | `python3 -m unittest tests.test_zero_link` |
 | Documentation governance | doc-warden `Overall: CONFORMANT` |
-| Changed paths bounded | exact §10 local and GitHub compare lists |
-| Remote exact-head proof | both required checks `success` on final G0-R head |
-| Composite not overclaimed | G0 remains `in_progress`; RESUME names pending children |
+| Changed paths bounded | exact §10 local and GitHub compare lists; no G0-V-owned path |
+| Final remote canary | both current required contexts `success` on exact final G0-R head under merged G0-V lock |
+| Composite not overclaimed | G0 remains `in_progress`; RESUME directs separate acceptance/closeout |
 
 ---
 
@@ -921,66 +1059,81 @@ plan rather than assuming it.
 
 Stop and return to the operator if:
 
-- any required change falls outside §10;
+- the accepted v3 path/digest or this accepted plan no longer matches the recorded immutable bytes,
+  or explicit implementation authority is absent;
+- any required G0-V-R/H/P/L or G0-C-AWA receipt is absent, stale, unverifiable, or no longer merged;
+- host authority proves G0-H is required but its separate receipt is absent;
+- any required change falls outside §10, including any attempted `Makefile`, `install.sh`, `.github`,
+  host, or consumer mutation;
 - a required correction changes a frozen required key, authoritative optional type, existing enum
   member, rule/invariant text, or machine-check status;
 - any pending declaration cannot be represented by the G0-R0 checker without weakening it;
 - an old reader must accept a newly emitted field/member in this delivery;
-- exact completed-phase evidence would need rewriting rather than factual annotation;
-- G0-R would need to mark itself or composite G0 done before a real merge/child receipt exists;
-- a router commit would be used as evidence for an external consumer commit;
+- exact completed-phase or child evidence would need rewriting rather than factual annotation;
+- G0-R would need to mark itself or composite G0 done before a real merge and separate acceptance;
+- a router commit would be used as evidence for an external consumer/host/protected-path commit;
+- the canonical gate is not noexec-compatible or a hermetic pointer/source/runtime/byte test is
+  parse-only, existence-only, or fails to bite on a controlled mismatch;
 - canonical remote verification requires hand-editing a lock or combining serial recipe/lock phases;
 - a protected-path merge would require the agent to self-approve, arm auto-merge, bypass a failing
   check, or use unauthorized admin merge;
+- either current required check context is absent or non-success on the exact final G0-R head;
 - doc-warden, zero-link, focused tests, `make verify`, `make status-verify`, or exact changed paths
-  fail;
-- a far-reaching authority or compatibility decision not settled in accepted design appears.
+  fail; or
+- a far-reaching authority or compatibility decision not settled in accepted v3 appears.
 
 Operator gates:
 
-1. Accept/revise/reject this v1 plan, including the G0-R/G0-V authority split.
-2. Acceptance plus the standing 2026-09-03 operator authorization permits G0-R implementation.
-3. Use the ordinary reviewer-App-controlled merge path for G0-R.
-4. Separately accept and authorize G0-V and G0-C-AWA under their owners.
-5. Accept composite G0 only after exact child receipts converge.
+1. Ordered acceptance is complete: design v3 was accepted first, then this G0-R v1 plan. Neither
+   acceptance authorizes implementation.
+2. Separately plan, accept, authorize, and deliver G0-V and G0-C-AWA; G0-H only if owner-proven.
+3. Explicitly authorize final G0-R implementation after every required receipt exists.
+4. Use the ordinary reviewer-App-controlled merge path for G0-R; never pre-arm it.
+5. After the real G0-R merge, separately accept/reject composite G0 and authorize its ledger
+   closeout. No later phase starts before that gate.
 
 ---
 
 ## 15. Implementation-agent recommendation
 
-Use the deep model tier with maximum reasoning for G0-R. The work changes durable authority,
+Use the deep model tier with maximum reasoning for final G0-R. The work changes durable authority,
 contract-roadmap provenance, ledger semantics, and rollback/security claims across many files even
 though runtime behavior stays intentionally small. Do not parallelize writers in one worktree.
 
-Expected cadence:
+Expected cadence after all child-receipt preconditions and explicit implementation authorization:
 
-1. Implement T1 and prove strict ledger honesty.
-2. Implement T2 and prove no authoritative contract promotion.
-3. Implement T3 and run stale-claim regressions.
-4. Implement T4 and prove exact CLI metadata/no new handlers.
-5. Implement T5 and run canonical local verification.
-6. Deliver T6 as one ordinary Draft PR, review to clean, then use governed merge.
-7. Capture the G0-R receipt and stop; do not begin G0-V or G0-C-AWA from this router worktree.
+1. Revalidate every G0-V/G0-C-AWA receipt and the G0-H not-required/required determination; stop on
+   any gap before mutation.
+2. Implement T1 and prove strict ledger honesty without closing G0.
+3. Implement T2 and prove no authoritative contract promotion.
+4. Implement T3 and run the exact stale-claim regressions.
+5. Implement T4 and prove exact CLI metadata/no new handlers, including the C0 phrasebook marker.
+6. Run T5's pre-existing G0-V hermetic/canonical-gate tests; do not absorb a G0-V defect.
+7. Deliver T6 as one ordinary Draft PR, review to clean, and require both exact current checks.
+8. Capture the G0-R merge receipt and stop for separate composite-G0 acceptance/closeout; do not
+   begin any later phase.
 
 ---
 
-## 16. Plan acceptance checkpoint
+## 16. Acceptance record
 
-Accepting this plan approves:
+The operator accepted this plan on 2026-09-03 after accepting the exact v3 authority recorded above.
+This acceptance approves:
 
-- the G0-R/G0-V authority split;
+- final-G0-R identity after completed G0-V/G0-C-AWA children;
 - the exact router G0-R scope and changed-path set;
 - the ledger/checkpoint and phase-ID model;
 - pending-only contract declaration mapping;
-- CLI taxonomy;
-- local canonical verification/provenance proof; and
-- delivery, rollback, and stop conditions.
+- CLI taxonomy and the C0 phrasebook revisit marker;
+- behavior-specific authority-honesty and inherited hermetic-provenance proof;
+- delivery, rollback, and stop conditions; and
+- the separate post-merge composite-G0 acceptance/ledger-closeout gate.
 
-Under the standing 2026-09-03 authorization, acceptance permits only the G0-R implementation and
-delivery described here. It does not authorize protected G0-V mutations, consumer changes,
-composite G0 closure, smart behavior, state persistence, fleet enrollment, release, or migration.
+Acceptance still does not authorize implementation before exact child receipts and explicit
+implementation authority. It never authorizes protected G0-V mutations, consumer changes,
+composite-G0 closure, smart behavior, state persistence, fleet enrollment, release, or migration.
 
-Decision:
+Recorded decision:
 
-> **Accept, revise, or reject `g0-r-authority-honesty-v1.md` as the executable basis for the
-> router-owned G0-R delivery and the separate G0-V handoff.**
+> **Accepted `g0-r-authority-honesty-v1.md` as the future executable basis for the final
+> router-owned G0-R reconciliation after exact G0-V and G0-C-AWA receipts exist.**
