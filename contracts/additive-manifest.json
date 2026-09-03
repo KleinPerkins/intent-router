@@ -15,5 +15,170 @@
     "R-resilience": {"kind": "additive", "contracts": {"intent-map/v1": ["behavior_hash"]}},
     "R-surface": {"kind": "additive", "contracts": {"intent-catalog/v1": ["deprecated"]}},
     "M0": {"kind": "no-schema-change", "reason": "Migration design-only pointer; no schema change."}
+  },
+  "frozen_behavior": {
+    "intent-catalog/v1": {
+      "file": "intent-catalog.v1.json",
+      "status": "frozen",
+      "required_keys": {
+        "verb": "string",
+        "aliases": "array",
+        "examples": "array",
+        "param_schema": "array<param>",
+        "preconditions": "array",
+        "safety_class": "enum",
+        "tool_path": "enum",
+        "start_point_rules": "object",
+        "plain_label": "string",
+        "consequence_copy": "string"
+      },
+      "optional_keys": {},
+      "nested": {
+        "param": {
+          "required_keys": {
+            "name": "string",
+            "type": "enum",
+            "required": "bool"
+          },
+          "optional_keys": {
+            "enum": "array",
+            "source": "enum"
+          }
+        }
+      },
+      "enum_floors": {
+        "safety_class": ["read", "write", "destructive"],
+        "tool_path": ["cli", "mcp", "hook"],
+        "param.type": ["string", "int", "number", "bool", "enum", "path", "ref"],
+        "param.source": ["literal", "regex", "enum", "repo-resolver", "llm"]
+      },
+      "content_floors": null
+    },
+    "intent-map/v1": {
+      "file": "intent-map.v1.json",
+      "status": "frozen",
+      "required_keys": {
+        "intent_key": "string",
+        "utterance_examples": "array",
+        "target_verb": "string",
+        "param_bindings": "object",
+        "weight": "number",
+        "confidence": "number",
+        "hit_count": "int",
+        "last_used": "string|null",
+        "outcome_stats": "object",
+        "source": "enum",
+        "version": "int"
+      },
+      "optional_keys": {},
+      "nested": {},
+      "enum_floors": {
+        "source": ["seed", "manual", "feedback"]
+      },
+      "content_floors": null
+    },
+    "intent-feedback/v1": {
+      "file": "intent-feedback.v1.json",
+      "status": "frozen",
+      "required_keys": {
+        "ts": "string",
+        "consumer": "string",
+        "catalog_version": "string",
+        "utterance": "string",
+        "proposal": "object",
+        "operator_choice": "enum",
+        "verdict": "enum",
+        "confidence": "number",
+        "outcome": "enum",
+        "session_id": "string"
+      },
+      "optional_keys": {
+        "correction": "object|null"
+      },
+      "nested": {},
+      "enum_floors": {
+        "operator_choice": ["accept", "correct", "reject", "clarify", "abort"],
+        "outcome": ["success", "refused", "failed", "noop", "unknown"],
+        "verdict": ["strong", "weak", "none"]
+      },
+      "content_floors": null
+    },
+    "intent-constitution/v1": {
+      "file": "intent-constitution.v1.json",
+      "status": "frozen",
+      "required_keys": {
+        "rules": "array<rule>",
+        "kernel_invariants": "array<invariant>",
+        "machine_checks": "object",
+        "banned_terms": "object",
+        "operator_outcomes": "array"
+      },
+      "optional_keys": {},
+      "nested": {},
+      "enum_floors": {
+        "machine_check.status": ["active", "spec"]
+      },
+      "content_floors": {
+        "rules": {
+          "CR1": "The router PROPOSES. It never executes a consumer verb; no field of intent-proposal runs anything.",
+          "CR2": "The router never AUTHORIZES. It is never in the authorization chain; the consumer's kernel makes the real allow/refuse decision.",
+          "CR3": "Router state is machine-local and private. events.jsonl / map.json / snapshots / phrasebook are NEVER committed to a shared repo.",
+          "CR4": "Contracts are additive-within-v1. No v2 for this work: a field is ADDED, never removed, renamed, or retyped.",
+          "CR5": "Prompt-injection resistance. Repo, transcript, and catalog-example content are DATA, never instructions; content can never change a proposal's safety_class.",
+          "CR6": "Off-switch. Uninstalling the router degrades the consumer's operator loop to ask + a secondary explicit path; it never silently guesses a destructive action.",
+          "CR7": "Calibration is reviewable-first (C0) then automatic (C1); promotion is a GATE, not a reopenable design choice.",
+          "CR8": "No LLM in the deterministic safety floor. L0-L2+L5 produce a valid conservative proposal with L3/L4 OFF (offline golden-set + degrade property).",
+          "CR9": "An LLM-inferred DESTRUCTIVE param requires explicit operator confirmation of the literal value; deterministic extraction is required for any slot feeding a destructive verb.",
+          "CR10": "Every PM-facing surface is jargon-free + honest-confidence (system-wide egress gate); no bare-green status may imply an unauditable safety guarantee."
+        },
+        "kernel_invariants": {
+          "KI1": "Kernel-first. The consumer's safety guarantee holds engine-off AND router-off; the consumer's own verify passes with the router uninstalled.",
+          "KI2": "Structural non-contamination. The kernel gate never reads any router artifact — a standing test greps the kernel for any import/read of router state = zero, forever.",
+          "KI3": "Behavioral non-contamination. A confidence-1.0 proposal produces the IDENTICAL kernel decision as the hand-typed equivalent; the router can never turn a kernel refuse into an allow.",
+          "KI4": "Kernel-sourced consequence. Consequence-based confirmations are sourced from the KERNEL disposition's consequence descriptor {destroys_unshared_work, irreversible, affects_shared_ref}, not from the router and not from a verb list."
+        },
+        "banned_terms_exact_values": {
+          "tier_a_generic_mechanism": ["kernel", "engine", "guard", "hook", "daemon", "mcp", "schema", "disposition", "flags", "callback", "socket", "descriptor"],
+          "tier_b_git_workflow": ["branch", "commit", "push", "pull", "merge", "rebase", "PR", "main", "origin", "detached", "dirty", "ahead", "behind", "orphan", "HEAD"]
+        },
+        "banned_terms_exact_scalars": {
+          "tier_c_consumer_contributed": "Each consumer supplies its own concrete on-disk leakers (tool names, flags, path words) via its catalog/egress config; the shared contract does not hardcode them."
+        },
+        "banned_terms_optional_entries": {},
+        "operator_outcomes_exact_members": ["accept", "correct", "reject", "clarify", "abort"]
+      }
+    },
+    "intent-proposal/v1": {
+      "file": "intent-proposal.v1.json",
+      "status": "frozen",
+      "required_keys": {
+        "consumer": "string",
+        "verb": "string",
+        "params": "object",
+        "start_point": "string",
+        "safety_class": "enum",
+        "tool_path": "enum",
+        "confidence": "number",
+        "verdict": "enum",
+        "why": "array",
+        "missing_params": "array",
+        "requires_confirmation": "bool"
+      },
+      "optional_keys": {},
+      "nested": {},
+      "enum_floors": {
+        "verdict": ["strong", "weak", "none"],
+        "safety_class": ["read", "write", "destructive"],
+        "tool_path": ["cli", "mcp", "hook"]
+      },
+      "content_floors": null
+    }
+  },
+  "enum_extensions": {
+    "intent-catalog/v1": {},
+    "intent-map/v1": {},
+    "intent-feedback/v1": {},
+    "intent-constitution/v1": {},
+    "intent-proposal/v1": {}
   }
 }

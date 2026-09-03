@@ -18,8 +18,8 @@ AWA is the first consumer. Kernel-first: the consumer's safety holds with the ro
   Referencing the first consumer (AWA) is fine — AWA is a sibling capability, not a forbidden token.
 - **Contracts additive-within-v1** (CR4): add fields, never remove/rename/retype. No v2 for this work.
 - **Freeze timing:** `intent-catalog/v1`, `intent-map/v1`, `intent-feedback/v1`, and the constitution
-  contract are FROZEN. `intent-proposal/v1` is PROVISIONAL — do NOT freeze it until A0 exercises it
-  against a real fixture.
+  contract are FROZEN. `intent-proposal/v1` is FROZEN — held provisional through P0/R-core and frozen
+  in A0 after the first-consumer seam exercised it.
 - **Ledger cannot lie:** `status.yml` is gated by `make status-verify`, which recomputes every `done`
   claim against disk + tests. Update the ledger honestly; deferred behavioral tests sit skipped with
   a "SPEC: future session <phase>" reason, never silently passing.
