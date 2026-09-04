@@ -709,6 +709,48 @@ class TestHermeticReleasePointer(_HermeticAssertions):
             "failed provenance selection must not rewrite the invalid pointer",
         )
 
+    def test_normal_installed_cli_does_not_create_runtime_bytecode(self):
+        fixture = self._fresh_install()
+        cli_environment = dict(fixture.env)
+        cli_environment.pop("PYTHONDONTWRITEBYTECODE", None)
+        cli_environment.pop("PYTHONPYCACHEPREFIX", None)
+        cli = _run(
+            ["bash", str(fixture.runtime / "bin" / "intent"), "--version"],
+            cwd=fixture.home,
+            env=cli_environment,
+        )
+        self.assertEqual(cli.returncode, 0, _output(cli))
+        self.assertEqual(cli.stdout.strip(), _source_version())
+        self.assertEqual(
+            _cache_artifacts(fixture.runtime),
+            [],
+            "normal installed CLI use must not create executable bytecode in runtime",
+        )
+        self._assert_doctor_green(fixture, installed_copy=False)
+        self._assert_doctor_green(fixture, installed_copy=True)
+
+        repair = fixture.run_runtime("--repair")
+        self.assertEqual(
+            repair.returncode,
+            0,
+            "runtime repair must stay green after normal CLI use:\n" + _output(repair),
+        )
+        self._assert_doctor_green(fixture)
+
+        cache = fixture.runtime / "intent_router" / "__pycache__"
+        cache.mkdir()
+        (cache / "injected.pyc").write_bytes(b"controlled cache artifact")
+        rejected = fixture.doctor()
+        self.assertNotEqual(
+            rejected.returncode,
+            0,
+            "doctor must still reject deliberately injected runtime bytecode",
+        )
+        self.assertIn("runtime-cache-exclusion", _output(rejected))
+        reset = fixture.install()
+        self.assertEqual(reset.returncode, 0, _output(reset))
+        self._assert_doctor_green(fixture)
+
     def test_release_pointer_helper_respects_python_39_floor(self):
         source = _embedded_release_pointer_source()
         tree = ast.parse(source)

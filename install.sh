@@ -84,6 +84,25 @@ for current, directories, files in os.walk(root, topdown=False, followlinks=Fals
 PY
 }
 
+_configure_runtime_cli_no_bytecode() {
+  IR_RUNTIME_CLI="$RUNTIME/bin/intent" python3 - <<'PY'
+import os
+import stat
+from pathlib import Path
+
+launcher = Path(os.environ["IR_RUNTIME_CLI"])
+mode = launcher.lstat().st_mode
+if stat.S_ISLNK(mode) or not stat.S_ISREG(mode):
+    raise SystemExit("intent-router: ERROR installed CLI launcher is not a regular file")
+text = launcher.read_text(encoding="utf-8")
+old = 'python3 -m intent_router.cli "$@"'
+new = 'python3 -B -m intent_router.cli "$@"'
+if text.count(old) != 1:
+    raise SystemExit("intent-router: ERROR installed CLI launcher template drifted")
+launcher.write_text(text.replace(old, new), encoding="utf-8")
+PY
+}
+
 _release_pointer_tool() {
   local mode="$1"
   IR_MODE="$mode" IR_POINTER="$POINTER" IR_SOURCE="$SRC_ROOT" IR_RUNTIME="$RUNTIME" \
@@ -598,6 +617,7 @@ do_install() {
     [ -f "$SRC_ROOT/$f" ] && cp "$SRC_ROOT/$f" "$RUNTIME/$f"
   done
   _remove_runtime_python_cache
+  _configure_runtime_cli_no_bytecode
   chmod +x "$RUNTIME"/install.sh "$RUNTIME"/bootstrap.sh 2>/dev/null || true
   chmod +x "$RUNTIME"/checks/*.sh "$RUNTIME"/bin/* "$RUNTIME"/tests/*.sh 2>/dev/null || true
 
