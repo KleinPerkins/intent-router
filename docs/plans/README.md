@@ -21,6 +21,7 @@ version is never modified.
 | [G0-R0 Contract Freeze Hardening v2](../archive/plans/g0-r0-contract-freeze-hardening-v2.md) | SUPERSEDED | 2026-09-02 | Archived; superseded by v3 (SHA-256: `d417c5b26742816be4349a8b8a31331c67bfbab0517f232ef2a7846950b0c76b`) |
 | [G0-R0 Contract Freeze Hardening v3](../archive/plans/g0-r0-contract-freeze-hardening-v3.md) | SUPERSEDED | 2026-09-02 | Archived; superseded by v4; doc-warden structural fix (SHA-256: `1fb88205edf418b404614790a48c820202f1191025379a3cad3589b62a7732ac`) |
 | [G0-R0 Contract Freeze Hardening v4](g0-r0-contract-freeze-hardening-v4.md) | ACCEPTED | 2026-09-02 | Active G0-R0 implementation basis; doc-warden compliant successor to v3 (renamed §8 to `## Work items`, added `**Interfaces:**` blocks) |
+| [G0-V-R Local Gate Prerequisite v1](g0-v-r-local-gate-prerequisite-v1.md) | ACCEPTED | 2026-09-03 | Active G0-V-R implementation authority after this accepted plan/index merge to live main; first serial receipt-gated G0-V delivery |
 | [G0-R Authority Honesty v1](g0-r-authority-honesty-v1.md) | ACCEPTED | 2026-09-03 | Final router reconciliation basis; implementation remains receipt-gated by exact G0-V/G0-C-AWA delivery |
 
 ## Conventions
