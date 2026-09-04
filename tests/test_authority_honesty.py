@@ -225,6 +225,14 @@ def _target_block(makefile: str, target: str) -> str:
     return "\n".join(lines[start:end])
 
 
+def _embedded_release_pointer_source() -> str:
+    installer = _INSTALLER.read_text(encoding="utf-8")
+    function_start = installer.index("_release_pointer_tool() {")
+    heredoc_start = installer.index("python3 - <<'PY'\n", function_start)
+    heredoc_end = installer.index("\nPY\n}", heredoc_start)
+    return installer[heredoc_start + len("python3 - <<'PY'\n") : heredoc_end]
+
+
 class _HermeticInstall:
     def __init__(
         self,
@@ -653,6 +661,77 @@ class TestHermeticReleasePointer(_HermeticAssertions):
         self.assertEqual(Path(pointer["runtime"]), fixture.runtime.resolve())
         self.assertTrue(fixture.runtime.is_relative_to(fixture.root))
         self.assertTrue(fixture.pointer.is_relative_to(fixture.root))
+        self._assert_doctor_green(fixture, installed_copy=False)
+        self._assert_doctor_green(fixture, installed_copy=True)
+
+    def test_runtime_reinstall_preserves_validated_source_provenance(self):
+        fixture = self._fresh_install()
+        original = json.loads(fixture.pointer.read_text(encoding="utf-8"))
+
+        reinstall = fixture.run_runtime()
+        self.assertEqual(
+            reinstall.returncode,
+            0,
+            "installed-copy idempotent install must use the validated original source:\n"
+            + _output(reinstall),
+        )
+        repair = fixture.run_runtime("--repair")
+        self.assertEqual(
+            repair.returncode,
+            0,
+            "installed-copy repair must use the validated original source:\n"
+            + _output(repair),
+        )
+        repaired = json.loads(fixture.pointer.read_text(encoding="utf-8"))
+        self.assertEqual(repaired["source"], original["source"])
+        self.assertEqual(repaired["commit"], original["commit"])
+        self.assertEqual(repaired["source"], str(_REPO_ROOT.resolve()))
+        self.assertEqual(repaired["commit"], _source_head())
+        self._assert_doctor_green(fixture, installed_copy=False)
+        self._assert_doctor_green(fixture, installed_copy=True)
+
+        repaired["schema"] = "intent-release-pointer/v999"
+        fixture.pointer.write_text(
+            json.dumps(repaired, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        tampered_bytes = fixture.pointer.read_bytes()
+        rejected = fixture.run_runtime()
+        self.assertNotEqual(
+            rejected.returncode,
+            0,
+            "installed-copy reinstall must not trust a malformed existing pointer",
+        )
+        self.assertIn("pointer-identity", _output(rejected))
+        self.assertEqual(
+            fixture.pointer.read_bytes(),
+            tampered_bytes,
+            "failed provenance selection must not rewrite the invalid pointer",
+        )
+
+    def test_release_pointer_helper_respects_python_39_floor(self):
+        source = _embedded_release_pointer_source()
+        tree = ast.parse(source)
+        forbidden = []
+        for node in ast.walk(tree):
+            annotations = []
+            annotation = getattr(node, "annotation", None)
+            if annotation is not None:
+                annotations.append(annotation)
+            returns = getattr(node, "returns", None)
+            if returns is not None:
+                annotations.append(returns)
+            for annotation_root in annotations:
+                for child in ast.walk(annotation_root):
+                    if isinstance(child, ast.BinOp) and isinstance(child.op, ast.BitOr):
+                        forbidden.append((child.lineno, ast.unparse(child)))
+        self.assertEqual(
+            forbidden,
+            [],
+            "embedded helper uses PEP 604 annotation spelling outside the Python 3.9 floor",
+        )
+
+        fixture = self._fresh_install()
         self._assert_doctor_green(fixture, installed_copy=False)
         self._assert_doctor_green(fixture, installed_copy=True)
 

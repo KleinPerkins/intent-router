@@ -102,6 +102,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from typing import Optional
 
 
 POINTER_KEYS = {
@@ -289,7 +290,7 @@ def read_pointer(pointer: Path) -> dict:
     return value
 
 
-def safe_existing_pointer(pointer: Path) -> dict | None:
+def safe_existing_pointer(pointer: Path) -> Optional[dict]:
     try:
         mode = pointer.lstat().st_mode
     except FileNotFoundError:
@@ -372,7 +373,7 @@ def write_pointer(pointer: Path, source_value: str, runtime_value: str) -> str:
     return version
 
 
-def cache_artifact(runtime: Path) -> str | None:
+def cache_artifact(runtime: Path) -> Optional[str]:
     for current, directories, files in os.walk(
         runtime, topdown=True, followlinks=False
     ):
@@ -517,12 +518,42 @@ def validate_pointer(
             fail("runtime-byte-integrity", relative)
 
 
+def select_install_source(
+    pointer: Path, candidate_source_value: str, runtime_value: str
+) -> str:
+    if (
+        not Path(candidate_source_value).is_absolute()
+        or not Path(runtime_value).is_absolute()
+    ):
+        fail("pointer-identity", "writer-paths")
+    candidate_source = require_directory(
+        Path(candidate_source_value), "source-identity", "source-root"
+    )
+    try:
+        expected_runtime = Path(runtime_value).resolve(strict=False)
+    except OSError:
+        fail("pointer-identity", "runtime")
+    if candidate_source != expected_runtime:
+        return str(candidate_source)
+
+    validate_pointer(pointer, runtime_value, candidate_source_value)
+    return read_pointer(pointer)["source"]
+
+
 try:
     mode = os.environ["IR_MODE"]
     pointer = Path(os.environ["IR_POINTER"])
     if mode == "write":
         print(
             write_pointer(
+                pointer,
+                os.environ["IR_SOURCE"],
+                os.environ["IR_RUNTIME"],
+            )
+        )
+    elif mode == "select-source":
+        print(
+            select_install_source(
                 pointer,
                 os.environ["IR_SOURCE"],
                 os.environ["IR_RUNTIME"],
@@ -555,6 +586,9 @@ PY
 
 do_install() {
   local force="${1:-0}"
+  local install_source
+  install_source="$(_release_pointer_tool select-source)"
+  SRC_ROOT="$install_source"
   log "installing runtime -> $RUNTIME"
   mkdir -p "$RUNTIME"
   for d in "${COPY_TREES[@]}"; do
