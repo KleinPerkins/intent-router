@@ -18,12 +18,14 @@ version is never modified.
 | [Roadmap Revision Step 3 Design v2](roadmap-revision-step-3-design-v2.md) | SUPERSEDED | 2026-09-03 | Immutable prior design; superseded by accepted v3 |
 | [Roadmap Revision Step 3 Design v3](roadmap-revision-step-3-design-v3.md) | SUPERSEDED | 2026-09-03 | Immutable prior design; superseded by accepted v4 |
 | [Roadmap Revision Step 3 Design v4](roadmap-revision-step-3-design-v4.md) | ACCEPTED | 2026-09-04 | Active design basis; diagnostic-first G0-V-Q with Route A or catalog-stable Route B |
+| [Roadmap Revision Step 3 Design v5](roadmap-revision-step-3-design-v5.md) | DRAFT | 2026-09-04 | Corrective lifecycle successor to v4; no architecture, operation, or external-authority expansion |
 | [G0-R0 Contract Freeze Hardening v1](../archive/plans/g0-r0-contract-freeze-hardening-v1.md) | SUPERSEDED | 2026-09-02 | Archived; superseded by v2 (SHA-256: `908f8915bf70c138df168a2ee0e46a1cabf4943f6baa31c970e62895aaaa2c97`) |
 | [G0-R0 Contract Freeze Hardening v2](../archive/plans/g0-r0-contract-freeze-hardening-v2.md) | SUPERSEDED | 2026-09-02 | Archived; superseded by v3 (SHA-256: `d417c5b26742816be4349a8b8a31331c67bfbab0517f232ef2a7846950b0c76b`) |
 | [G0-R0 Contract Freeze Hardening v3](../archive/plans/g0-r0-contract-freeze-hardening-v3.md) | SUPERSEDED | 2026-09-02 | Archived; superseded by v4; doc-warden structural fix (SHA-256: `1fb88205edf418b404614790a48c820202f1191025379a3cad3589b62a7732ac`) |
 | [G0-R0 Contract Freeze Hardening v4](g0-r0-contract-freeze-hardening-v4.md) | ACCEPTED | 2026-09-02 | Active G0-R0 implementation basis; doc-warden compliant successor to v3 (renamed §8 to `## Work items`, added `**Interfaces:**` blocks) |
 | [G0-V-R Local Gate Prerequisite v1](g0-v-r-local-gate-prerequisite-v1.md) | SUPERSEDED | 2026-09-03 | Immutable prior plan; superseded by accepted v2 |
 | [G0-V-R Local Gate Prerequisite v2](g0-v-r-local-gate-prerequisite-v2.md) | ACCEPTED | 2026-09-04 | Active G0-V-R continuation basis; route-aware sandbox qualification and Ready-triggered production Checks |
+| [G0-V-R Local Gate Prerequisite v3](g0-v-r-local-gate-prerequisite-v3.md) | DRAFT | 2026-09-04 | Corrective lifecycle successor to v2; no architecture, operation, or external-authority expansion |
 | [G0-R Authority Honesty v1](g0-r-authority-honesty-v1.md) | ACCEPTED | 2026-09-03 | Final router reconciliation basis; implementation remains receipt-gated by exact G0-V/G0-C-AWA delivery |
 
 ## Conventions
