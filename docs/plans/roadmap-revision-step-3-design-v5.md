@@ -1,6 +1,6 @@
 # Intent-router roadmap revision — Step 3 design v5
 
-**Status:** DRAFT — 2026-09-04
+**Status:** ACCEPTED — 2026-09-04
 **Plan-type:** standard
 **Supersedes:** `docs/plans/roadmap-revision-step-3-design-v4.md` only upon acceptance and merge
 **Predecessor SHA-256:** `ddcb06643995c8d794b9a48c530dd7bc2ad7666d8210cddec6dc5f4a25bf25ed`

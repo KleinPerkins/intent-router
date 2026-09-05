@@ -1,6 +1,6 @@
 # G0-V-R local-gate prerequisite continuation plan v3
 
-**Status:** DRAFT — 2026-09-04
+**Status:** ACCEPTED — 2026-09-04
 **Plan-type:** agentic-execution
 **Supersedes:** `docs/plans/g0-v-r-local-gate-prerequisite-v2.md` only upon acceptance and merge
 **Predecessor SHA-256:** `a80085e1f69f45b7fc617bd6e06000b010106f9ba34d0ec0af8d0a3562b529d2`
