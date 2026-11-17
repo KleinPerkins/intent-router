@@ -91,10 +91,19 @@ Proprietary — © KleinPerkins. All rights reserved. See [`LICENSE`](LICENSE).
 
 ## Continuous integration and governed delivery
 
-The accepted G1 transition adds six meaningful hosted Actions shards and the
-`ci-required` aggregate. Run `python3 -I -B scripts/verify.py local` for source
-verification. Publication, owner initial admission, qualified account enrollment
-and App activation are separate gates; this disabled source candidate proves none
-of those outcomes. Automatic independent originating-account review and qualified
-Chaos Scheduler App-only native squash delivery follow [CI delivery](docs/ci-delivery.md).
+Source CI runs six hosted Actions shards and the `ci-required` aggregate. To run
+the complete source suites locally:
+
+```sh
+python3 -I -B scripts/verify.py local
+make verify
+make status-verify
+```
+
+[The initial source admission](https://github.com/KleinPerkins/intent-router/pull/61)
+contains the account-bound review and App delivery adapters. Ready PRs require
+fresh independent review from their originating Codex account. The qualified
+Chaos Scheduler App owns approval and native squash through the
+[documented delivery process](docs/ci-delivery.md). Local verification does not
+establish hosted CI, App activation, installation or product-release completion.
 The retired PR controller is deprecated and must not resume. Product WIP stays held.
