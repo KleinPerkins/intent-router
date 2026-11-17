@@ -152,9 +152,11 @@ def validate_controls(repo, rules, rulesets, *, require_legacy=False, require_su
     require(any(r.get('strict_required_status_checks_policy') is True and
                 any(c.get('context') == 'ci-required' and c.get('integration_id') == CI_APP_ID
                     for c in r.get('required_status_checks', [])) for r in required), 'strict CI15368 required')
-    require(any(r.get('required_approving_review_count', 0) == 1 and r.get('dismiss_stale_reviews_on_push') is True
+    reviews = by_type.get('pull_request', [])
+    require(len(reviews) == 1, 'one unambiguous pull-request rule required')
+    require(all(r.get('required_approving_review_count', 0) == 1 and r.get('dismiss_stale_reviews_on_push') is True
                 and r.get('required_review_thread_resolution') is True and r.get('allowed_merge_methods') == ['squash']
-                for r in by_type.get('pull_request', [])), 'review controls missing')
+                for r in reviews), 'review controls missing')
     require(all(name in by_type for name in ('required_linear_history', 'deletion', 'non_fast_forward')), 'history protection missing')
     # Preserve distinct owner/admin history-only and PR-only exceptions. App-scoped reads
     # may redact bypass_actors; absence is unknown, never evidence of emptiness.

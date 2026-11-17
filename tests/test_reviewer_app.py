@@ -301,6 +301,18 @@ class DeliveryTests(unittest.TestCase):
             with self.assertRaises(gate.Rejected):gate.deliver(read,write,1,{'enabled':True},'hash',NOW,gate.APP_SLUG,'123')
             self.assertIs(snapshots.call_args.kwargs['require_successor_only'],True)
             writes.assert_not_called()
+    def test_overlapping_pull_request_controls_reject(self):
+        for count, methods in ((1, ['squash']), (2, ['squash']), (1, ['merge'])):
+            repo, rules, sets = APIAndControlsTests().controls()
+            extra = dict(type='pull_request', ruleset_id=2, parameters=dict(
+                required_approving_review_count=count, dismiss_stale_reviews_on_push=True,
+                required_review_thread_resolution=True, allowed_merge_methods=methods))
+            rules.append(extra)
+            sets.append(dict(id=2, enforcement='active', bypass_actors=[], rules=[extra]))
+            with self.subTest(count=count, methods=methods), self.assertRaisesRegex(
+                    gate.Rejected, 'one unambiguous pull-request rule required'):
+                gate.validate_controls(repo, rules, sets)
+
     def test_more_than_one_required_approval_is_not_qualified(self):
         for count in (0,2,3):
             repo,rules,sets=APIAndControlsTests().controls()
