@@ -226,8 +226,11 @@ class APIAndControlsTests(unittest.TestCase):
             with self.assertRaises(gate.Rejected):gate.validate_controls(*args)
 
 class DeliveryTests(unittest.TestCase):
+    def setUp(self):
+        guard=patch.object(gate,'controls_snapshot',return_value={'controls_sha256':'app-controls','contributing_rulesets':[1],'app_non_bypass':{'1':'never'}})
+        self.app_controls=guard.start();self.addCleanup(guard.stop)
     def proof(self):
-        return {'tuple':{'head_sha':'a'*40,'base_sha':'b'*40},'node_id':'PR_node','merge_sha':'c'*40}
+        return {'tuple':{'head_sha':'a'*40,'base_sha':'b'*40},'node_id':'PR_node','merge_sha':'c'*40,'contributing_rulesets':[1]}
     def live_pr(self, state='blocked'):
         return {'node_id':'PR_node','number':1,'state':'open','merged':False,'draft':False,
                 'head':{'sha':'a'*40,'repo':{'id':gate.REPOSITORY_ID}},
@@ -304,6 +307,36 @@ class DeliveryTests(unittest.TestCase):
             next(row['parameters'] for row in rules if row['type']=='pull_request')['required_approving_review_count']=count
             with self.subTest(count=count),self.assertRaisesRegex(gate.Rejected,'review controls missing'):
                 gate.validate_controls(repo,rules,sets)
+
+    def test_actual_writer_checks_repeat_before_approval_and_native_operation(self):
+        read,write,writes=self.clean_apis()
+        with patch.object(gate,'snapshot',return_value=self.proof()):
+            gate.deliver(read,write,1,{'enabled':True},'hash',NOW,gate.APP_SLUG,'123')
+        self.assertEqual(self.app_controls.call_count,2)
+        self.assertTrue(all(call.args==(write,) for call in self.app_controls.call_args_list))
+        self.assertTrue(all(call.kwargs=={'require_successor_only':True,'require_app_non_bypass':True}
+                            for call in self.app_controls.call_args_list))
+        self.assertEqual(len(writes),2)
+    def test_app_status_failure_or_incomplete_coverage_prevents_approval(self):
+        for failure in (gate.Rejected('App bypass status is unknown or permits bypass'),
+                        {'contributing_rulesets':[1,2]}):
+            read,write=self.fake_apis()
+            self.app_controls.reset_mock()
+            self.app_controls.side_effect=failure if isinstance(failure,Exception) else None
+            self.app_controls.return_value=failure
+            with patch.object(gate,'snapshot',return_value=self.proof()),patch.object(write,'request') as writes:
+                with self.assertRaises(gate.Rejected):
+                    gate.deliver(read,write,1,{'enabled':True},'hash',NOW,gate.APP_SLUG,'123')
+                writes.assert_not_called()
+    def test_app_status_change_after_approval_prevents_native_write(self):
+        baseline={'controls_sha256':'old','contributing_rulesets':[1],'app_non_bypass':{'1':'never'}}
+        for changed in (gate.Rejected('App bypass status is unknown or permits bypass'),
+                        dict(baseline,controls_sha256='changed',contributing_rulesets=[1,2])):
+            read,write,writes=self.clean_apis()
+            self.app_controls.side_effect=[baseline,changed]
+            with patch.object(gate,'snapshot',return_value=self.proof()),self.assertRaises(gate.Rejected):
+                gate.deliver(read,write,1,{'enabled':True},'hash',NOW,gate.APP_SLUG,'123')
+            self.assertEqual(len(writes),1,'no native mutation may follow changed/unknown App status')
 
     def test_lost_approval_response_reuses_current_app_review_without_duplicate_post(self):
         read,write=self.fake_apis();proof=self.proof();writes=[];original=read.request
@@ -560,6 +593,68 @@ class CITests(unittest.TestCase):
         api.pages=lambda path,key:([run,failed] if key=='workflow_runs' else jobs)
         with self.assertRaises(gate.Rejected):gate.validate_ci(api,'/repos/'+gate.REPOSITORY,pr,'c'*40)
 
+class AppNonBypassTests(unittest.TestCase):
+    def fixture(self):
+        repo,rules,sets=APIAndControlsTests().controls()
+        del sets[0]['bypass_actors']
+        sets[0]['current_user_can_bypass']='never'
+        app=gate.API('actual-app-token',writable=True)
+        def request(path,method='GET',data=None):
+            self.assertEqual(method,'GET','caller-specific probes must be reads')
+            if path.endswith('/rules/branches/main'):return rules
+            if '/rulesets/' in path:return next(row for row in sets if str(row['id'])==path.rsplit('/',1)[1])
+            raise AssertionError(path)
+        app.request=request;app.pages=lambda *args:[{'id':row['id']} for row in sets]
+        return app,repo,rules,sets
+    def snapshot(self,app,repo):
+        with patch.object(gate,'repository_snapshot',return_value=repo):
+            return gate.controls_snapshot(app,require_successor_only=True,require_app_non_bypass=True)
+    def test_redacted_list_and_never_are_valid_app_specific_evidence(self):
+        app,repo,rules,sets=self.fixture();value=self.snapshot(app,repo)
+        self.assertEqual(value['app_non_bypass'],{'1':'never'})
+        self.assertEqual(value['bypass_visibility'],{'1':'redacted-or-unavailable'})
+        self.assertEqual(value['contributing_rulesets'],[1])
+        self.assertNotIn('bypass_actors',sets[0],'caller-specific evidence must not invent a hidden list')
+    def test_every_missing_unknown_or_capable_status_refuses(self):
+        for value in (None,'','always','pull_requests_only','pull_request','exempt','unknown',True,False,0,[],{}):
+            app,repo,rules,sets=self.fixture();sets[0]['current_user_can_bypass']=value
+            with self.subTest(value=value),self.assertRaisesRegex(gate.Rejected,'App bypass status'):
+                self.snapshot(app,repo)
+        app,repo,rules,sets=self.fixture();del sets[0]['current_user_can_bypass']
+        with self.assertRaisesRegex(gate.Rejected,'App bypass status'):self.snapshot(app,repo)
+    def test_incomplete_duplicate_inactive_or_malformed_contributors_refuse(self):
+        _,_,rules,sets=self.fixture()
+        cases=[([],sets),(rules,[]),(rules,sets+sets),(rules,[dict(sets[0],enforcement='disabled')]),
+               (rules+[dict(type='deletion',ruleset_id=2)],sets),
+               ([dict(type='deletion')],sets),([dict(type='deletion',ruleset_id=True)],sets),
+               (rules,[dict(sets[0],id=True)]),(rules,[dict(sets[0],id='1')]),
+               (rules,[dict(sets[0],id=[])]),(rules,[dict(sets[0],id=None)])]
+        for observed,details in cases:
+            with self.subTest(observed=observed),self.assertRaises(gate.Rejected):
+                gate.app_non_bypass(observed,details)
+    def test_visible_owner_actor_checks_are_preserved(self):
+        app,repo,rules,sets=self.fixture()
+        sets[0]['bypass_actors']=[{'actor_id':gate.APP_ID,'actor_type':'Integration','bypass_mode':'always'}]
+        with self.assertRaisesRegex(gate.Rejected,'owner bypass exception'):self.snapshot(app,repo)
+    def test_current_readonly_qualification_exercises_same_app_path_and_rejects_drift(self):
+        read,_,_,_,_,_=ReadinessTests().fixture()
+        app,repo,rules,sets=self.fixture();app.writable=False
+        app.pages=lambda path,key=None: ([{'id':gate.REPOSITORY_ID,'full_name':gate.REPOSITORY}]
+            if path=='/installation/repositories' else [{'id':row['id']} for row in sets])
+        with patch.object(gate,'repository_snapshot',return_value=repo):
+            value=gate.qualify_app(read,app,'c'*40,gate.APP_SLUG,'123',stage='current')
+        self.assertEqual(value['app_non_bypass'],{'1':'never'})
+        original=app.request;reads=[]
+        def changed(path,method='GET',data=None):
+            result=original(path,method,data)
+            if '/rulesets/' in path:
+                reads.append(path)
+                if len(reads)==2:return dict(result,current_user_can_bypass='always')
+            return result
+        app.request=changed
+        with patch.object(gate,'repository_snapshot',return_value=repo),self.assertRaisesRegex(gate.Rejected,'App bypass status'):
+            gate.qualify_app(read,app,'c'*40,gate.APP_SLUG,'123',stage='current')
+
 class ReadinessTests(unittest.TestCase):
     def test_bootstrap_requires_both_exact_legacy_blockers_but_delivery_does_not(self):
         repo,rules,sets=APIAndControlsTests().controls()
@@ -597,7 +692,7 @@ class ReadinessTests(unittest.TestCase):
         with patch.object(gate,'controls_snapshot',return_value={'controls_sha256':'hash','bypass_visibility':{'1':'redacted-or-unavailable'}}) as control_checks, patch.object(app,'request') as app_request:
             result=self.qualify(read,app)
         self.assertEqual(control_checks.call_count,2)
-        self.assertTrue(all(call.kwargs=={'require_legacy':True} for call in control_checks.call_args_list))
+        self.assertTrue(all(call.kwargs=={'require_legacy':True,'require_app_non_bypass':True} for call in control_checks.call_args_list))
         self.assertEqual(result['status'],'qualified-app-read-only')
         self.assertFalse(result['mutated'])
         self.assertEqual(result['revision'],'c'*40)
@@ -610,7 +705,7 @@ class ReadinessTests(unittest.TestCase):
         self.assertEqual(result['qualification_stage'],'current')
         self.assertFalse(result['mutated'])
         self.assertEqual(controls.call_count,2)
-        self.assertTrue(all(c.kwargs=={'require_successor_only':True} for c in controls.call_args_list))
+        self.assertTrue(all(c.kwargs=={'require_successor_only':True,'require_app_non_bypass':True} for c in controls.call_args_list))
         writes.assert_not_called()
         with patch.object(gate,'controls_snapshot',side_effect=[{'hash':'old'},{'hash':'new'}]),self.assertRaisesRegex(gate.Rejected,'controls moved'):
             gate.qualify_app(read,app,'c'*40,gate.APP_SLUG,'123',stage='current')

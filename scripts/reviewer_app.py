@@ -431,9 +431,33 @@ def snapshot(api, number, policy, policy_hash, now, *, require_successor_only=Fa
     receipt = choose_receipt(comments, policy, current, policy_hash, now, origin)
     ci = validate_ci(api, prefix, pr, merge_sha)
     return {'tuple': current, 'origin': origin, 'receipt': receipt, 'ci': ci, 'merge_sha': merge_sha,
-            'node_id': pr['node_id'], 'bypass_visibility': {str(r['id']): ('visible' if 'bypass_actors' in r else 'redacted-or-unavailable') for r in rulesets}, 'controls_sha256': digest(canonical([{k: repo[k] for k in ('id', 'default_branch', 'private', 'allow_squash_merge', 'allow_merge_commit', 'allow_rebase_merge', 'allow_auto_merge')}, rules, rulesets]))}
+            'node_id': pr['node_id'], 'contributing_rulesets': sorted({r['ruleset_id'] for r in rules}), 'bypass_visibility': {str(r['id']): ('visible' if 'bypass_actors' in r else 'redacted-or-unavailable') for r in rulesets}, 'controls_sha256': digest(canonical([{k: repo[k] for k in ('id', 'default_branch', 'private', 'allow_squash_merge', 'allow_merge_commit', 'allow_rebase_merge', 'allow_auto_merge')}, rules, rulesets]))}
 
-def controls_snapshot(api, *, require_legacy=False, require_successor_only=False):
+def app_non_bypass(rules, rulesets):
+    """Caller-specific evidence; the caller must be the validated App token."""
+    require(isinstance(rules, list) and rules and all(isinstance(r, dict) for r in rules),
+            'App effective rules are missing or malformed')
+    ids = [r.get('ruleset_id') for r in rules]
+    require(all(type(value) is int and value > 0 for value in ids),
+            'App contributing ruleset identity is invalid')
+    contributors = set(ids)
+    require(isinstance(rulesets, list) and all(isinstance(r, dict) for r in rulesets),
+            'App ruleset coverage is malformed')
+    require(all(type(r.get('id')) is int and r['id'] > 0 for r in rulesets),
+            'App ruleset detail identity is invalid')
+    selected = [r for r in rulesets if r['id'] in contributors]
+    require(len(selected) == len(contributors)
+            and {r.get('id') for r in selected} == contributors,
+            'App contributing ruleset coverage is incomplete or duplicated')
+    for rule in selected:
+        require(rule.get('enforcement') == 'active', 'App contributing ruleset is not active')
+        require(rule.get('current_user_can_bypass') == 'never',
+                'App bypass status is unknown or permits bypass')
+    return {str(value): 'never' for value in sorted(contributors)}
+
+
+def controls_snapshot(api, *, require_legacy=False, require_successor_only=False,
+                      require_app_non_bypass=False):
     prefix = '/repos/' + REPOSITORY
     repo = repository_snapshot(api)
     rules = api.request(prefix + '/rules/branches/main')
@@ -441,8 +465,12 @@ def controls_snapshot(api, *, require_legacy=False, require_successor_only=False
     rulesets = [api.request(prefix + '/rulesets/' + str(s['id'])) for s in summaries]
     validate_controls(repo, rules, rulesets, require_legacy=require_legacy,
                       require_successor_only=require_successor_only)
-    return {'controls_sha256': digest(canonical([repo, rules, rulesets])),
-            'bypass_visibility': {str(r['id']): ('visible' if 'bypass_actors' in r else 'redacted-or-unavailable') for r in rulesets}}
+    result = {'controls_sha256': digest(canonical([repo, rules, rulesets])),
+              'contributing_rulesets': sorted({r['ruleset_id'] for r in rules}),
+              'bypass_visibility': {str(r['id']): ('visible' if 'bypass_actors' in r else 'redacted-or-unavailable') for r in rulesets}}
+    if require_app_non_bypass:
+        result['app_non_bypass'] = app_non_bypass(rules, rulesets)
+    return result
 
 def validate_app_identity(read_api, app_api, app_slug, installation_id):
     # Issuer proof is the trusted workflow's pinned create-token action with fixed
@@ -466,6 +494,7 @@ def qualify_app(read_api, app_api, trusted, app_slug, installation_id, *, stage=
     require(read_api.request(prefix + '/git/ref/heads/main')['object']['sha'] == trusted, 'main moved before qualification')
     identity = validate_app_identity(read_api, app_api, app_slug, installation_id)
     options = {'require_legacy': True} if stage == 'bootstrap' else {'require_successor_only': True}
+    options['require_app_non_bypass'] = True
     controls = controls_snapshot(app_api, **options)
     workflow = read_api.request(prefix + '/actions/workflows/ci.yml')
     require(workflow['path'] == '.github/workflows/ci.yml' and workflow['state'] == 'active', 'CI workflow identity')
@@ -555,6 +584,11 @@ def deliver(read_api, write_api, number, policy, policy_hash, now, app_slug, ins
     head = first['tuple']['head_sha']
     require_unarmed(read_api.request('/repos/' + REPOSITORY + f'/pulls/{number}'))
     prior = existing_approval(read_api, number, head)
+    # Use the actual validated writer credential for this caller-specific field.
+    # CI_READ_TOKEN cannot prove whether the App itself can bypass native rules.
+    app_controls = controls_snapshot(write_api, require_successor_only=True, require_app_non_bypass=True)
+    require(app_controls['contributing_rulesets'] == first['contributing_rulesets'],
+            'App contributing ruleset coverage differs from admitted controls')
     if prior is None:
         approval = write_api.request('/repos/' + REPOSITORY + f'/pulls/{number}/reviews', 'POST',
             {'event': 'APPROVE', 'commit_id': head, 'body': 'G1: completed enrolled local review and current CI/control gates verified. Q16 operational trust applies.'})
@@ -580,6 +614,8 @@ def deliver(read_api, write_api, number, policy, policy_hash, now, app_slug, ins
             and read_api.request(prefix + '/git/ref/heads/main')['object']['sha'] == first['tuple']['base_sha']
             and latest.get('mergeable') is True
             and latest.get('mergeable_state') in ('clean', 'blocked'), 'native delivery state drift')
+    require(controls_snapshot(write_api, require_successor_only=True, require_app_non_bypass=True) == app_controls,
+            'App controls changed before native delivery')
     # Both native operations atomically check the head, not the base. Native
     # strict checks still arbitrate subsequent base races; the App has no bypass.
     inputs = {'pullRequestId': first['node_id'], 'expectedHeadOid': head, 'mergeMethod': 'SQUASH'}

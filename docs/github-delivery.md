@@ -158,9 +158,26 @@ history-only ruleset. This does not permit `always` on merge, CI or review contr
 Broader or App bypass is rejected. App reads can redact that field: the result
 reports this as `redacted-or-unavailable`, never observed empty. Root owner-authenticated
 GETs must qualify the exact preserved bypass policy during cutover. This helper
-never exercises that owner authority. Missing API fields,
-inaccessible rules, pagination overflow, unknown mergeability and stale source fail
-closed. The helper rechecks all gates before approval and again before arming.
+never exercises that owner authority.
+
+Before approval and again immediately before native delivery, the helper uses
+its actual validated App writer token for GET-only effective-main rules and
+contributing-ruleset reads. Every contributor must be present exactly once,
+active and report `current_user_can_bypass` exactly `never`; missing, malformed,
+unknown or bypass-capable values fail closed. Its contributor set must match
+the admitted CI-token control view and its App control evidence must remain
+unchanged between the two checks. `CI_READ_TOKEN` cannot establish the App’s
+caller-specific status. Existing visible actor-list allowlists and the owner’s
+full-list cutover qualification still apply. This proof does not reveal other
+hidden actors or atomically exclude later administrative changes.
+
+The existing trusted-main read-only qualification exercises this same check
+at both control snapshots using its scoped App credential and read-only client.
+It retains its current token permissions; runtime still independently checks
+the actual writer credential before writes. Neither stage adds an owner
+credential, new service or stronger permission. Missing API fields,
+inaccessible rules, pagination overflow, unknown mergeability and stale source
+fail closed.
 
 Before approval the App reads GitHub’s durable review records. Exactly one
 current exact-head approval by its bot may be reused after fresh complete
@@ -169,7 +186,12 @@ approval follows the ordinary approval path; pending, dismissed, duplicate or
 changed matching App reviews require read-only reconciliation. Reuse is checked
 again before the native operation. A new event with those live reads is a fresh
 admission, not a blind retry of an unconfirmed response; no attempt comment or
-additional mutation endpoint is introduced.
+additional mutation endpoint is introduced. Reconciliation covers visible/known
+approval records, not an exactly-once submission guarantee. If GitHub’s list
+visibility lags an applied approval whose response was lost, a later fully
+admitted submission may add a redundant authorized App audit record. No strong
+API consistency is assumed; visible duplicates still stop later reconciliation.
+It never substitutes another actor, stale review, failed CI or a different head.
 
 GitHub provides no atomic compare-and-set on auto-merge absence together with
 approval. These live reads reject observed pre-arming; they cannot technically
@@ -205,9 +227,9 @@ Unknown, conflicting, behind or changed state refuses delivery. This follows the
 reference CLI's [ready-versus-deferred selection](https://github.com/cli/cli/blob/trunk/pkg/cmd/pr/merge/merge.go).
 GitHub describes [auto-merge](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/automatically-merging-a-pull-request)
 as the option for PRs that cannot yet merge immediately. Both calls carry the
-reviewed head as `expectedHeadOid`; neither is an administrative bypass. The App
-never selects a second operation following an error, and never automatically
-retries an ambiguous mutation. Diagnostics expose bounded error types only.
+reviewed head as `expectedHeadOid`; neither is an administrative bypass. Within an invocation, the App
+never selects a second operation following an error or automatically retries an
+ambiguous mutation. Diagnostics expose bounded error types only.
 
 An immediate-merge response is independently read back: the PR must be merged by
 the enrolled App at the reviewed head into main; its squash commit must have the
