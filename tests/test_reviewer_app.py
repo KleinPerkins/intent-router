@@ -271,12 +271,40 @@ class DeliveryTests(unittest.TestCase):
             result=gate.deliver(read,write,1,{'enabled':True},'hash',NOW,gate.APP_SLUG,'123')
             self.assertEqual(result,{'status':'armed','head_sha':'a'*40,'merged':False})
             self.assertEqual(snapshot.call_count,3)
+            self.assertTrue(all(call.kwargs.get('require_successor_only') is True for call in snapshot.call_args_list))
             self.assertEqual(request.call_count,2)
             self.assertEqual(request.call_args_list[0].args[2]['commit_id'],'a'*40)
             payload=request.call_args_list[1].args[2]
             self.assertIn('$input:EnablePullRequestAutoMergeInput!',payload['query'])
             self.assertIn('enablePullRequestAutoMerge(input:$input)',payload['query'])
             self.assertEqual(payload['variables'],{'input':{'pullRequestId':'PR_node','expectedHeadOid':'a'*40,'mergeMethod':'SQUASH'}})
+    def test_ordinary_write_snapshots_enforce_successor_only_controls(self):
+        repo,rules,sets=APIAndControlsTests().controls()
+        checks=next(row['parameters']['required_status_checks'] for row in rules if row['type']=='required_status_checks')
+        checks.append({'context':'pr-automation / verify','integration_id':4274739})
+        pr=self.live_pr();pr['user']={'id':gate.OWNER_ID,'type':'User'}
+        read=gate.API('fake')
+        def request(path):
+            if path.endswith('/pulls/1'):return pr
+            if path.endswith('/git/ref/heads/main'):return {'object':{'sha':'b'*40}}
+            if path.endswith('/rules/branches/main'):return rules
+            if '/rulesets/' in path:return sets[0]
+            raise AssertionError('retired control must reject before further admission')
+        read.request=request;read.pages=lambda *args:[{'id':sets[0]['id']}]
+        with patch.object(gate,'repository_snapshot',return_value=repo),self.assertRaisesRegex(gate.Rejected,'retired controller blockers'):
+            gate.snapshot(read,1,{'enabled':True},'hash',NOW,require_successor_only=True)
+        read,write=self.fake_apis()
+        with patch.object(gate,'snapshot',side_effect=gate.Rejected('stop at first fresh admission')) as snapshots,patch.object(write,'request') as writes:
+            with self.assertRaises(gate.Rejected):gate.deliver(read,write,1,{'enabled':True},'hash',NOW,gate.APP_SLUG,'123')
+            self.assertIs(snapshots.call_args.kwargs['require_successor_only'],True)
+            writes.assert_not_called()
+    def test_more_than_one_required_approval_is_not_qualified(self):
+        for count in (0,2,3):
+            repo,rules,sets=APIAndControlsTests().controls()
+            next(row['parameters'] for row in rules if row['type']=='pull_request')['required_approving_review_count']=count
+            with self.subTest(count=count),self.assertRaisesRegex(gate.Rejected,'review controls missing'):
+                gate.validate_controls(repo,rules,sets)
+
     def test_lost_approval_response_reuses_current_app_review_without_duplicate_post(self):
         read,write=self.fake_apis();proof=self.proof();writes=[];original=read.request
         current={'id':77,'commit_id':'a'*40,'state':'APPROVED',

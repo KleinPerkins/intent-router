@@ -14,7 +14,12 @@ Source delivery alone does not authorize activation or qualify either account.
 ## Enrollment and immutable input
 
 Keep enrollment and receipts private. The owner enrolls exactly these non-secret
-fields outside the candidate repository:
+fields outside the candidate repository. Input-file privacy is the caller’s
+responsibility in this operational trust model: this capture entry point does not
+police ownership, permission bits or symlink aliases for its caller-supplied input
+paths. Supply owner-private files from the qualified profile. This differs from
+the separate PR-creation entry point, which explicitly enforces those filesystem
+checks before its remote mutation. The account/profile checks below still apply:
 
 ```json
 {

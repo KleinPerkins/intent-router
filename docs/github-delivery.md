@@ -142,7 +142,11 @@ run and attempt. Missing/duplicate/malformed logs or an old tested merge revisio
 fail admission even if GitHub's linked PR metadata has changed. Redirected log
 downloads strip authorization headers. No artifacts are downloaded or executed.
 
-Effective main rules must require strict `ci-required@15368`, at least one approval,
+Every write-admission snapshot rejects retired controller required checks.
+Read-only bootstrap receipt qualification may retain them until the separate
+accepted cutover; it cannot write or establish ordinary post-cutover admission.
+
+Effective main rules must require strict `ci-required@15368`, exactly one approval,
 stale-approval dismissal, resolved conversations, squash-only PR merging, linear history, no deletion
 and no non-fast-forward updates. Repository metadata must allow squash/auto-merge and
 disallow merge commits and rebase. All contributing rulesets must be active. Where bypass fields are visible, exactly one
@@ -169,8 +173,9 @@ additional mutation endpoint is introduced.
 GitHub provides no atomic compare-and-set on auto-merge absence together with
 approval. These live reads reject observed pre-arming; they cannot technically
 exclude a concurrent owner/admin or an equally privileged unauthorized writer
-between reads. The accepted operational trust model does not claim that
-exclusion. Agents remain prohibited from pre-arming, bypassing or retrying
+between reads. This is an explicit current limitation; no operator acceptance
+of that concurrent-writer delivery risk is asserted here. Agents remain
+prohibited from pre-arming, bypassing or retrying
 uncertain native operations. Strict native protections and expected-head checks
 still apply; mocked races do not prove exclusion of privileged concurrent actors.
 

@@ -152,7 +152,7 @@ def validate_controls(repo, rules, rulesets, *, require_legacy=False, require_su
     require(any(r.get('strict_required_status_checks_policy') is True and
                 any(c.get('context') == 'ci-required' and c.get('integration_id') == CI_APP_ID
                     for c in r.get('required_status_checks', [])) for r in required), 'strict CI15368 required')
-    require(any(r.get('required_approving_review_count', 0) >= 1 and r.get('dismiss_stale_reviews_on_push') is True
+    require(any(r.get('required_approving_review_count', 0) == 1 and r.get('dismiss_stale_reviews_on_push') is True
                 and r.get('required_review_thread_resolution') is True and r.get('allowed_merge_methods') == ['squash']
                 for r in by_type.get('pull_request', [])), 'review controls missing')
     require(all(name in by_type for name in ('required_linear_history', 'deletion', 'non_fast_forward')), 'history protection missing')
@@ -404,7 +404,7 @@ def require_unarmed(pr):
             'existing or unknown native auto-merge request; read-only reconciliation required')
 
 
-def snapshot(api, number, policy, policy_hash, now):
+def snapshot(api, number, policy, policy_hash, now, *, require_successor_only=False):
     prefix = '/repos/' + REPOSITORY
     repo = repository_snapshot(api)
     pr = api.request(prefix + '/pulls/' + str(number))
@@ -419,7 +419,7 @@ def snapshot(api, number, policy, policy_hash, now):
     rules = api.request(prefix + '/rules/branches/main')
     summaries = api.pages(prefix + '/rulesets?includes_parents=true')
     rulesets = [api.request(prefix + '/rulesets/' + str(s['id'])) for s in summaries]
-    validate_controls(repo, rules, rulesets)
+    validate_controls(repo, rules, rulesets, require_successor_only=require_successor_only)
     merge_sha = api.request(prefix + f'/git/ref/pull/{number}/merge')['object']['sha']
     merge = api.request(prefix + '/git/commits/' + merge_sha)
     require([p['sha'] for p in merge['parents']] == [base, pr['head']['sha']], 'synthetic merge tuple drift')
@@ -548,10 +548,10 @@ def existing_approval(api, number, head):
 def deliver(read_api, write_api, number, policy, policy_hash, now, app_slug, installation_id):
     require(policy.get('enabled') is True, 'App writes disabled by trusted enrollment policy')
     validate_app_identity(read_api, write_api, app_slug, installation_id)
-    first = snapshot(read_api, number, policy, policy_hash, now)
+    first = snapshot(read_api, number, policy, policy_hash, now, require_successor_only=True)
     # Re-read all mutable gates immediately before every write. Native strict
     # required checks and stale-approval dismissal arbitrate races after this read.
-    require(snapshot(read_api, number, policy, policy_hash, now) == first, 'admission drift before approval')
+    require(snapshot(read_api, number, policy, policy_hash, now, require_successor_only=True) == first, 'admission drift before approval')
     head = first['tuple']['head_sha']
     require_unarmed(read_api.request('/repos/' + REPOSITORY + f'/pulls/{number}'))
     prior = existing_approval(read_api, number, head)
@@ -561,7 +561,7 @@ def deliver(read_api, write_api, number, policy, policy_hash, now, app_slug, ins
         require(approval['state'] == 'APPROVED' and approval['commit_id'] == head
                 and approval['user']['login'] == app_slug + '[bot]' and approval['user']['id'] == BOT_ID
                 and approval['user']['type'] == 'Bot', 'approval identity/result mismatch')
-    require(snapshot(read_api, number, policy, policy_hash, now) == first, 'admission drift after approval; auto-merge not armed')
+    require(snapshot(read_api, number, policy, policy_hash, now, require_successor_only=True) == first, 'admission drift after approval; auto-merge not armed')
     if prior is not None:
         require(existing_approval(read_api, number, head) == prior,
                 'existing App approval changed; read-only reconciliation required')
