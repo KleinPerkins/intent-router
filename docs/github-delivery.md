@@ -157,6 +157,23 @@ never exercises that owner authority. Missing API fields,
 inaccessible rules, pagination overflow, unknown mergeability and stale source fail
 closed. The helper rechecks all gates before approval and again before arming.
 
+Before approval the App reads GitHub’s durable review records. Exactly one
+current exact-head approval by its bot may be reused after fresh complete
+head/base/policy, independent review, CI and control admission. Missing prior
+approval follows the ordinary approval path; pending, dismissed, duplicate or
+changed matching App reviews require read-only reconciliation. Reuse is checked
+again before the native operation. A new event with those live reads is a fresh
+admission, not a blind retry of an unconfirmed response; no attempt comment or
+additional mutation endpoint is introduced.
+
+GitHub provides no atomic compare-and-set on auto-merge absence together with
+approval. These live reads reject observed pre-arming; they cannot technically
+exclude a concurrent owner/admin or an equally privileged unauthorized writer
+between reads. The accepted operational trust model does not claim that
+exclusion. Agents remain prohibited from pre-arming, bypassing or retrying
+uncertain native operations. Strict native protections and expected-head checks
+still apply; mocked races do not prove exclusion of privileged concurrent actors.
+
 Existing or unknown native auto-merge requests block before approval and again
 before either native mutation; the App never adopts or cancels another request.
 A deferred success must name the App in the mutation response and an independent

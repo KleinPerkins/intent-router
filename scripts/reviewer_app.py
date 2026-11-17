@@ -527,6 +527,24 @@ def confirm_native_merge(read_api, number, proof, response):
             'merge_sha': merged_sha, 'base_sha': proof['tuple']['base_sha']}
 
 
+def existing_approval(api, number, head):
+    # GitHub's current review records reconcile a prior successful approval whose
+    # response was lost. Fresh admission below still binds today's complete tuple.
+    rows = api.pages('/repos/' + REPOSITORY + f'/pulls/{number}/reviews')
+    matches = [row for row in rows if row.get('user', {}).get('id') == BOT_ID
+               and row.get('commit_id') == head]
+    if not matches:
+        return None
+    require(len(matches) == 1, 'multiple existing App reviews for this head; read-only reconciliation required')
+    row = matches[0]
+    require(row.get('user', {}).get('login') == APP_SLUG + '[bot]'
+            and row.get('user', {}).get('type') == 'Bot'
+            and type(row.get('id')) is int and row['id'] > 0
+            and row.get('state') == 'APPROVED',
+            'existing App review is not a single current approval; read-only reconciliation required')
+    return {'id': row['id'], 'commit_id': head, 'state': 'APPROVED'}
+
+
 def deliver(read_api, write_api, number, policy, policy_hash, now, app_slug, installation_id):
     require(policy.get('enabled') is True, 'App writes disabled by trusted enrollment policy')
     validate_app_identity(read_api, write_api, app_slug, installation_id)
@@ -536,12 +554,17 @@ def deliver(read_api, write_api, number, policy, policy_hash, now, app_slug, ins
     require(snapshot(read_api, number, policy, policy_hash, now) == first, 'admission drift before approval')
     head = first['tuple']['head_sha']
     require_unarmed(read_api.request('/repos/' + REPOSITORY + f'/pulls/{number}'))
-    approval = write_api.request('/repos/' + REPOSITORY + f'/pulls/{number}/reviews', 'POST',
-        {'event': 'APPROVE', 'commit_id': head, 'body': 'G1: completed enrolled local review and current CI/control gates verified. Q16 operational trust applies.'})
-    require(approval['state'] == 'APPROVED' and approval['commit_id'] == head
-            and approval['user']['login'] == app_slug + '[bot]' and approval['user']['id'] == BOT_ID
-            and approval['user']['type'] == 'Bot', 'approval identity/result mismatch')
+    prior = existing_approval(read_api, number, head)
+    if prior is None:
+        approval = write_api.request('/repos/' + REPOSITORY + f'/pulls/{number}/reviews', 'POST',
+            {'event': 'APPROVE', 'commit_id': head, 'body': 'G1: completed enrolled local review and current CI/control gates verified. Q16 operational trust applies.'})
+        require(approval['state'] == 'APPROVED' and approval['commit_id'] == head
+                and approval['user']['login'] == app_slug + '[bot]' and approval['user']['id'] == BOT_ID
+                and approval['user']['type'] == 'Bot', 'approval identity/result mismatch')
     require(snapshot(read_api, number, policy, policy_hash, now) == first, 'admission drift after approval; auto-merge not armed')
+    if prior is not None:
+        require(existing_approval(read_api, number, head) == prior,
+                'existing App approval changed; read-only reconciliation required')
     # Select the native operation from a fresh observed state, never from a failed
     # mutation. Like gh --auto, a ready PR uses native merge; a blocked PR is armed.
     prefix = '/repos/' + REPOSITORY

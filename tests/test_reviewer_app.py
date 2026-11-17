@@ -238,6 +238,7 @@ class DeliveryTests(unittest.TestCase):
         read.request=lambda path: ({'id':gate.BOT_ID,'type':'Bot','login':gate.APP_SLUG+'[bot]'} if path.startswith('/users/') else
                                   {'object':{'sha':'b'*40}} if path.endswith('/git/ref/heads/main') else self.live_pr())
         write.pages=lambda *args:[{'id':gate.REPOSITORY_ID,'full_name':gate.REPOSITORY}]
+        read.pages=lambda *args:[]
         return read,write
     def test_disabled_means_no_mutation(self):
         read,write=self.fake_apis()
@@ -276,6 +277,45 @@ class DeliveryTests(unittest.TestCase):
             self.assertIn('$input:EnablePullRequestAutoMergeInput!',payload['query'])
             self.assertIn('enablePullRequestAutoMerge(input:$input)',payload['query'])
             self.assertEqual(payload['variables'],{'input':{'pullRequestId':'PR_node','expectedHeadOid':'a'*40,'mergeMethod':'SQUASH'}})
+    def test_lost_approval_response_reuses_current_app_review_without_duplicate_post(self):
+        read,write=self.fake_apis();proof=self.proof();writes=[];original=read.request
+        current={'id':77,'commit_id':'a'*40,'state':'APPROVED',
+                 'user':{'id':gate.BOT_ID,'type':'Bot','login':gate.APP_SLUG+'[bot]'}}
+        read.pages=lambda *args:[current]
+        def mutate(path,method,data):
+            writes.append((path,method,data))
+            self.assertEqual(path,'/graphql','reconciled approval must not be posted again')
+            return {'data':{'enablePullRequestAutoMerge':{'pullRequest':{'autoMergeRequest':{'mergeMethod':'SQUASH','enabledBy':{'login':gate.APP_SLUG+'[bot]'}}}}}}
+        def observed(path):
+            value=original(path)
+            if path.endswith('/pulls/1') and writes:
+                value['auto_merge']={'merge_method':'squash','enabled_by':{'id':gate.BOT_ID,'type':'Bot','login':gate.APP_SLUG+'[bot]'}}
+            return value
+        read.request=observed;write.request=mutate
+        with patch.object(gate,'snapshot',return_value=proof) as snapshots:
+            self.assertEqual(gate.deliver(read,write,1,{'enabled':True},'hash',NOW,gate.APP_SLUG,'123')['status'],'armed')
+        self.assertEqual(snapshots.call_count,3,'prior approval does not replace fresh complete admission')
+        self.assertEqual(len(writes),1)
+    def test_existing_app_review_unknown_or_changed_state_fails_without_approval_retry(self):
+        approved={'id':77,'commit_id':'a'*40,'state':'APPROVED',
+                  'user':{'id':gate.BOT_ID,'type':'Bot','login':gate.APP_SLUG+'[bot]'}}
+        for state in ('PENDING','DISMISSED','CHANGES_REQUESTED','COMMENTED',None):
+            read,write=self.fake_apis();read.pages=lambda *args:[dict(approved,state=state)]
+            with patch.object(gate,'snapshot',return_value=self.proof()),patch.object(write,'request') as request:
+                with self.assertRaisesRegex(gate.Rejected,'existing App review'):
+                    gate.deliver(read,write,1,{'enabled':True},'hash',NOW,gate.APP_SLUG,'123')
+                request.assert_not_called()
+        read,write=self.fake_apis();read.pages=lambda *args:[approved,approved]
+        with patch.object(gate,'snapshot',return_value=self.proof()),patch.object(write,'request') as request:
+            with self.assertRaisesRegex(gate.Rejected,'multiple existing App reviews'):
+                gate.deliver(read,write,1,{'enabled':True},'hash',NOW,gate.APP_SLUG,'123')
+            request.assert_not_called()
+        read,write=self.fake_apis()
+        with patch.object(read,'pages',side_effect=[[approved],[]]),patch.object(gate,'snapshot',return_value=self.proof()),patch.object(write,'request') as request:
+            with self.assertRaisesRegex(gate.Rejected,'existing App approval changed'):
+                gate.deliver(read,write,1,{'enabled':True},'hash',NOW,gate.APP_SLUG,'123')
+            request.assert_not_called()
+
     def test_preexisting_or_unknown_auto_merge_blocks_before_approval(self):
         for value in (None, {}, {'merge_method':'squash','enabled_by':{'id':gate.OWNER_ID}},
                       {'merge_method':'squash','enabled_by':{'id':gate.BOT_ID}}):
