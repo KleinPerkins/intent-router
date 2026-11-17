@@ -2,9 +2,10 @@
 
 This is source for the accepted G1 successor. It does not report that publication,
 Actions, enrollment, App credentials, controls, or live native merging are qualified.
-The staged policy contains separately qualified opaque work and personal producers.
-Its policy admission switch is enabled, but repository `REVIEWER_APP_ENABLED` must
-remain OFF until the root verifies the accepted qualification and cutover gates.
+The initial policy is disabled and its producer list is empty. Qualified opaque
+account enrollment requires its separate reviewed source admission. Repository
+`REVIEWER_APP_ENABLED` must remain OFF until the root verifies all accepted
+qualification and cutover gates.
 This source state alone does not authorize writes. Workflow dispatch is always read-only. Automated writes additionally require the repository variable
 `REVIEWER_APP_ENABLED` to equal `true`, enabled trusted enrollment policy, and every
 live gate. Only existing App **4217367** approves a head and requests native **SQUASH**.
@@ -155,6 +156,12 @@ GETs must qualify the exact preserved bypass policy during cutover. This helper
 never exercises that owner authority. Missing API fields,
 inaccessible rules, pagination overflow, unknown mergeability and stale source fail
 closed. The helper rechecks all gates before approval and again before arming.
+
+Existing or unknown native auto-merge requests block before approval and again
+before either native mutation; the App never adopts or cancels another request.
+A deferred success must name the App in the mutation response and an independent
+PR readback must confirm its bot ID/login/type, squash method and unchanged tuple.
+An ambiguous result requires read-only reconciliation without another write.
 
 After approval and another complete admission check, the App reads the current
 PR state and main again. For `clean`, it calls `mergePullRequest` with **SQUASH**;
