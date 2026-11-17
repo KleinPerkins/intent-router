@@ -32,8 +32,8 @@ AWA is the first consumer. Kernel-first: the consumer's safety holds with the ro
   regenerate `RESUME.md`, and record the rollback path. `make verify` is the repo gate.
 - Do NOT create the `capabilities/skills/global/tools/intent-router` shelf pointer or WF1 enrollment
   until R-surface-complete (keeps P0 zero-link trivially clean).
-- Repo mutations: this repo is not under `~/dev`, so the ~/dev worktree guard does not apply; still
-  use branch + PR, never push to `main` directly.
+- Repo mutations use the inherited personal identity, native managed worktree, one writer and
+  installed commit guards. Use branch + PR, never push to `main` directly.
 
 ## Phase ladder (see status.yml for live state)
 
@@ -61,3 +61,23 @@ This repo's documentation structure is governed by `doc-warden`.
 
 - When invoking policy, name the exact governing authority and distinguish binding repository policy
   from plan-specific stop conditions; never elevate a plan condition into a general policy requirement.
+
+## CI transition and automatic review
+
+The accepted amended G1 cohort authorizes the successor standard hosted sharded
+Actions and Chaos Scheduler App delivery for this repository. The old PR controller
+is deprecated; it is never a runtime dependency. `docs/ci-delivery.md` records
+initial publication/admission and activation gates. Preserve held product WIP.
+Run `python3 -I -B scripts/verify.py local`, `make verify` and `make status-verify`
+after CI/source changes. Keep every test module mapped exactly once in the six
+closed shards; new tests require an explicit mapping, never an empty success shard.
+
+The authoring agent automatically launches fresh independent review before any
+ready PR and after any head, current base or trusted policy change. Bind review to
+the actual PR-creation Codex account, prefer its qualified cloud route and otherwise
+use its qualified trusted local adapter. Capture actual reports, fix findings,
+review the new tuple and publish the unedited receipt via the documented adapters.
+No human technical review, shared-username inference, fabricated receipts or
+cross-account substitution. Missing matching runtime or incomplete review blocks
+delivery. Only the qualified Chaos Scheduler App approves and requests native
+squash. Agents never merge, bypass controls or operate native auto-merge.

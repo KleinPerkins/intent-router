@@ -35,7 +35,7 @@
 | R7 | **Destructive params confirm literally:** an LLM-inferred destructive param requires literal-value confirmation; deterministic extraction for destructive slots (CR9). | **Spec → R2** | catalog per-param `extractor`/`confirm_literal` (additive in R2) + `destructive_param_literal_confirm` test. |
 | R8 | **Feedback log redaction:** no secret/PII persisted into the event log; consented/redacted seeding only. | **Spec → C1** | `redacted`/`consent_ref` fields (additive in C1) + a redaction pass at write time. |
 | R9 | **Structural non-contamination:** the consumer kernel reads ZERO router artifacts (KI2); a confidence-1.0 proposal yields the identical kernel decision as the hand-typed equivalent (KI3). | **Spec → A0** | greppable kernel-read audit + the behavioral contamination test, in the consumer repo, pinning the router contract version. |
-| R10 | Commit-time secret/identity safety is **reproducible for every clone**. | **Verified (P0)** | CI `.github/workflows/baseline.yml` runs `baseline-verify.sh` (committed-credential scan + minimal workflow permissions) on every push/PR; `make fix-hooks` installs the KleinPerkins local commit guards where the host overlay is present (see below). |
+| R10 | Successor CI has reproducible source safety and exact-run controls; local identity/secret guards remain host aids. | **Source verified; hosted activation gated** | `.github/workflows/ci.yml` runs six closed shards including the committed-credential-file guard, ownership/workflow contracts and fail-closed aggregate. Publication, initial admission, required controls and trusted-main App readiness remain separate gates in `docs/ci-delivery.md`; `make fix-hooks` installs local guards where the host overlay is present. |
 
 ## Commit-time guards (intentional exception, documented)
 
@@ -49,9 +49,11 @@ capability on purpose:
 - Vendoring copies of the overlay's guard scripts would couple this generic, zero-link capability to
   one machine's layout and drift from the upstream source of truth.
 
-Instead, the **durable, reproducible** commit safety for *every* clone and CI run is the committed
-CI baseline (`.github/workflows/baseline.yml` → `baseline-verify.sh`: committed-credential-file scan
-+ minimal workflow permissions) plus branch protection — which run regardless of any local setup.
+The committed successor CI source (`.github/workflows/ci.yml`) supplies six closed
+test shards, a committed-credential-file guard, an exact-run aggregate and minimal
+workflow permissions. After its separate activation and required-protection gates,
+these checks run regardless of local hook setup. Source verification alone does
+not prove hosted execution or current enforcement.
 For local defense-in-depth on a KleinPerkins/dev machine, run **`make fix-hooks`**; it installs the
 overlay guards when present and otherwise prints a clear note and no-ops (never fails a fresh clone).
 

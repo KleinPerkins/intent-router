@@ -6,3 +6,18 @@
 /CODEOWNERS @KleinPerkins
 /_ops/ @KleinPerkins
 # END kleinperkins runnerless PR automation v3
+
+# Source-owned successor CI and delivery review surface
+/.github/** @KleinPerkins
+/AGENTS.md @KleinPerkins
+/Makefile @KleinPerkins
+/README.md @KleinPerkins
+/SECURITY.md @KleinPerkins
+/checks/** @KleinPerkins
+/contracts/** @KleinPerkins
+/docs/** @KleinPerkins
+/install.sh @KleinPerkins
+/intent_router/** @KleinPerkins
+/scripts/** @KleinPerkins
+/status.yml @KleinPerkins
+/tests/** @KleinPerkins

@@ -1,0 +1,15 @@
+{
+  "schema": "g1-review-enrollments/v1",
+  "repository_id": 1294651532,
+  "enabled": false,
+  "producers": [],
+  "governance": {
+    "phase": "G1-initial-source-writer-off",
+    "repository": "KleinPerkins/intent-router",
+    "authorized_delivery": "Accepted amended G1 cohort authorizes permanent meaningful sharded standard GitHub Actions and Chaos Scheduler App delivery for this target. This supersedes inherited runnerless-only hosting restrictions for this CI transition. The retired PR controller will not resume.",
+    "review_authority": "The authoring agent automatically captures a fresh enrolled independent review under the originating PR-creation account before every ready PR and after any head, current base or trusted policy change. Use a qualified same-account cloud route when available, otherwise the qualified trusted local adapter. No human technical review or cross-account substitution.",
+    "bootstrap_limits": "This initial source candidate leaves enrollment disabled with no producers. Public exposure clearance, exact owner/admin initial PR-only admission, successful merged-main CI, qualified producer admission, read-only trusted-main App readiness and successor control cutover are separate gates. Keep REVIEWER_APP_ENABLED OFF until all gates pass. Retained old required checks are bootstrap blockers only, never an operational dependency or a request to restart the retired controller. Agents cannot merge, bypass checks or manipulate auto-merge.",
+    "native_delivery_authority": "Only qualified Chaos Scheduler App4217367 approves the exact head and requests native SQUASH immediately when merge-ready or arms native SQUASH auto-merge when eligible blocked, after current automatic originating-account review, exact-tuple CI and strict protections. No failed/ambiguous mutation permits blind retry or fallback.",
+    "source_limits": "CI and delivery preparation only. Existing runtime, frozen contracts, product phase ledger and held WIP remain separate. No local test or source receipt proves publication, hosted execution, admission, installation, activation or delivery."
+  }
+}

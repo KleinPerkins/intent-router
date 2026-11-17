@@ -1,0 +1,110 @@
+{
+  "schema": "intent-router-ci-contract/v1",
+  "repository": {
+    "owner": "KleinPerkins",
+    "name": "intent-router",
+    "id": 1294651532,
+    "default_branch": "main"
+  },
+  "successor": {
+    "actions_app_id": 15368,
+    "reviewer_app_id": 4217367,
+    "required_check": "ci-required",
+    "workflow": ".github/workflows/ci.yml",
+    "workflow_name": "CI",
+    "activation": "gated"
+  },
+  "shards": {
+    "contract": [
+      "tests/test_additive_compat.py",
+      "tests/test_catalog_contract_binding.py",
+      "tests/test_constitution.py",
+      "tests/test_contract_freeze.py",
+      "tests/test_deferred_spec.py",
+      "tests/test_no_execution.py",
+      "tests/test_status_verify.py",
+      "tests/test_zero_link.py"
+    ],
+    "routing": [
+      "tests/test_candidates.py",
+      "tests/test_catalog.py",
+      "tests/test_engine.py",
+      "tests/test_golden.py",
+      "tests/test_normalize.py",
+      "tests/test_proposal.py",
+      "tests/test_verdict.py"
+    ],
+    "surfaces": [
+      "tests/test_catalog_egress.py",
+      "tests/test_cli.py",
+      "tests/test_cli_stub.py",
+      "tests/test_doctor.py",
+      "tests/test_egress_terms.py",
+      "tests/test_honest_confidence.py",
+      "tests/test_mcp.py",
+      "tests/test_proposal_exercise.py",
+      "tests/test_proposal_fixture.py",
+      "tests/test_state.py"
+    ],
+    "ci-negative": [
+      "tests/test_ci_contract.py",
+      "tests/test_ci.py"
+    ],
+    "local-review": [
+      "tests/test_local_review.py",
+      "tests/test_create_review_pr.py"
+    ],
+    "app-gate": [
+      "tests/test_reviewer_app.py"
+    ]
+  },
+  "protected_paths": [
+    ".github",
+    "scripts",
+    "tests",
+    "docs",
+    "AGENTS.md",
+    "README.md",
+    "SECURITY.md",
+    "CODEOWNERS",
+    "_ops",
+    "checks",
+    "intent_router",
+    "Makefile",
+    "install.sh",
+    "contracts",
+    "status.yml"
+  ],
+  "integration_allowlist": [
+    "scripts/local_review.py",
+    "tests/test_local_review.py",
+    "docs/local-review.md",
+    ".github/workflows/reviewer-app.yml",
+    "scripts/reviewer_app.py",
+    "tests/test_reviewer_app.py",
+    "docs/github-delivery.md",
+    ".github/review-enrollments.json",
+    "scripts/create_review_pr.py",
+    "tests/test_create_review_pr.py",
+    "docs/pr-creation.md"
+  ],
+  "legacy": {
+    "mode": "historical-until-control-cutover",
+    "files": [
+      ".github/pr-automation.json",
+      ".github/pr-recipe.json",
+      ".github/pr-automation.lock.json",
+      ".github/pr-verification.json"
+    ],
+    "aggregate": "pr-automation / verify",
+    "custom": "pr-automation / job:repo.intent-router.m3-verify"
+  },
+  "coverage_mapping": {
+    "contracts": "contract: every existing freeze, constitution, additive, zero-link, executionless and status-ledger test; real freeze/static preflight/strict ledger commands",
+    "routing": "routing: deterministic candidates, catalog, normalization, engine, verdict, proposals and golden set without LLM or network",
+    "surfaces": "surfaces: CLI/MCP/doctor, private temporary state, fixture/proposal exercise and operator egress/confidence behavior",
+    "delivery": "ci-negative + local-review + app-gate: fail-closed exact-run CI, complete suite coverage, trusted account capture/creation and actual App workflow/admission tests",
+    "installation": "surfaces also exercises idempotent install/doctor/uninstall in a disposable HOME via make verify-install; static install preflight is in contract",
+    "safety": "full source history is fetched for the existing strict status ancestry proof; contents-read exact-revision pinned checkout, standard hosted runners and bounded jobs"
+  }
+}
