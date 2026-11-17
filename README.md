@@ -94,8 +94,7 @@ Proprietary — © KleinPerkins. All rights reserved. See [`LICENSE`](LICENSE).
 Source CI defines six hosted Actions shards and the `ci-required` aggregate.
 Run `python3 -I -B scripts/verify.py local` for source verification.
 
-[The initial source admission](https://github.com/KleinPerkins/intent-router/pull/61)
-contains the account-bound review and App delivery adapters. Ready PRs require
+Ready PRs require
 fresh independent review from their originating Codex account. The qualified
 Chaos Scheduler App owns approval and native squash through the
 [documented delivery process](docs/ci-delivery.md). Local verification does not
