@@ -91,7 +91,7 @@ Proprietary — © KleinPerkins. All rights reserved. See [`LICENSE`](LICENSE).
 
 ## Continuous integration and governed delivery
 
-Source CI runs six hosted Actions shards and the `ci-required` aggregate. To run
+Source CI defines six hosted Actions shards and the `ci-required` aggregate. To run
 the complete source suites locally:
 
 ```sh
