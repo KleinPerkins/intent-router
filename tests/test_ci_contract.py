@@ -149,11 +149,28 @@ class IntentRouterCIContract(unittest.TestCase):
                    and any(fnmatch.fnmatch(Path(name).name,pattern) for pattern in patterns)]
         self.assertEqual(offenders,[],"committed credential file detected")
 
-    def test_initial_policy_cannot_admit_writes(self):
-        policy=load_json(ROOT/".github/review-enrollments.json")
-        self.assertEqual(policy["repository_id"],1294651532)
-        self.assertIs(policy["enabled"],False)
-        self.assertEqual(policy["producers"],[])
+    def test_qualified_producer_policy_does_not_activate_writer(self):
+        import hashlib
+        import importlib.util
+        policy = load_json(ROOT/".github/review-enrollments.json")
+        self.assertEqual(policy["repository_id"], 1294651532)
+        self.assertIs(policy["enabled"], True)
+        spec = importlib.util.spec_from_file_location("source_review", ROOT/"scripts/local_review.py")
+        review = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(review)
+        self.assertEqual(len(policy["producers"]), 2)
+        self.assertEqual(len({p["origin_account"] for p in policy["producers"]}), 2)
+        for producer in policy["producers"]:
+            self.assertIs(producer["enabled"], True)
+            self.assertEqual(producer["github_user_id"], 49759187)
+            self.assertEqual(producer["instructions_sha256"], review.digest(review.INSTRUCTIONS))
+            for field, path in (("capture_adapter_sha256", "scripts/local_review.py"),
+                                ("creation_adapter_sha256", "scripts/create_review_pr.py")):
+                self.assertEqual(producer[field], hashlib.sha256((ROOT/path).read_bytes()).hexdigest())
+        workflow = load_json(ROOT/".github/workflows/reviewer-app.yml")
+        write = [s for s in workflow["jobs"]["admit"]["steps"] if s.get("run", "").endswith("--write")]
+        self.assertEqual(len(write), 1)
+        self.assertIn("vars.REVIEWER_APP_ENABLED == 'true'", write[0]["if"])
 
     def test_operator_description(self):
         check_docs(ROOT)
