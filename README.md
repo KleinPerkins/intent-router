@@ -91,14 +91,8 @@ Proprietary — © KleinPerkins. All rights reserved. See [`LICENSE`](LICENSE).
 
 ## Continuous integration and governed delivery
 
-Source CI defines six hosted Actions shards and the `ci-required` aggregate. To run
-the complete source suites locally:
-
-```sh
-python3 -I -B scripts/verify.py local
-make verify
-make status-verify
-```
+Source CI defines six hosted Actions shards and the `ci-required` aggregate.
+Run `python3 -I -B scripts/verify.py local` for source verification.
 
 [The initial source admission](https://github.com/KleinPerkins/intent-router/pull/61)
 contains the account-bound review and App delivery adapters. Ready PRs require
