@@ -594,13 +594,15 @@ def deliver(read_api, write_api, number, policy, policy_hash, now, app_slug, ins
     if prior is None:
         approval = write_api.request('/repos/' + REPOSITORY + f'/pulls/{number}/reviews', 'POST',
             {'event': 'APPROVE', 'commit_id': head, 'body': 'G1: completed enrolled local review and current CI/control gates verified. Q16 operational trust applies.'})
-        require(approval['state'] == 'APPROVED' and approval['commit_id'] == head
+        require(type(approval.get('id')) is int and approval['id'] > 0
+                and approval['state'] == 'APPROVED' and approval['commit_id'] == head
                 and approval['user']['login'] == app_slug + '[bot]' and approval['user']['id'] == BOT_ID
                 and approval['user']['type'] == 'Bot', 'approval identity/result mismatch')
     require(snapshot(read_api, number, policy, policy_hash, now, require_successor_only=True) == first, 'admission drift after approval; auto-merge not armed')
-    if prior is not None:
-        require(existing_approval(read_api, number, head) == prior,
-                'existing App approval changed; read-only reconciliation required')
+    expected_approval = prior if prior is not None else {
+        'id': approval['id'], 'commit_id': head, 'state': 'APPROVED'}
+    require(existing_approval(read_api, number, head) == expected_approval,
+            'existing App approval changed; read-only reconciliation required')
     # Select the native operation from a fresh observed state, never from a failed
     # mutation. Like gh --auto, a ready PR uses native merge; a blocked PR is armed.
     prefix = '/repos/' + REPOSITORY
@@ -618,6 +620,8 @@ def deliver(read_api, write_api, number, policy, policy_hash, now, app_slug, ins
             and latest.get('mergeable_state') in ('clean', 'blocked'), 'native delivery state drift')
     require(controls_snapshot(write_api, require_successor_only=True, require_app_non_bypass=True) == app_controls,
             'App controls changed before native delivery')
+    require(existing_approval(read_api, number, head) == expected_approval,
+            'App approval changed before native delivery')
     # Both native operations atomically check the head, not the base. Native
     # strict checks still arbitrate subsequent base races; the App has no bypass.
     inputs = {'pullRequestId': first['node_id'], 'expectedHeadOid': head, 'mergeMethod': 'SQUASH'}

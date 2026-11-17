@@ -45,12 +45,12 @@ review/origin evidence, complete exact CI, current merge parents, effective stri
 checks/review/history/squash controls and installation identity before each write.
 
 Initial publication remains gated by actual content/history/exposed-artifact
-clearance. This initial source has policy disabled and no producers; repository
-`REVIEWER_APP_ENABLED` stays OFF. Preserve current controls/preimages. Old
+clearance. This source enrolls the two qualified account producers with their current adapter
+hashes; repository `REVIEWER_APP_ENABLED` stays OFF. Preserve current controls/preimages. Old
 `.github/pr-*` files and required checks are historical bootstrap blockers only;
 never restart or depend operationally on the retired controller. Exact owner/admin
 initial PR-only admission is separate from automatic technical review. After it,
-prove merged-main CI, independently admit qualified account enrollment, qualify
+prove merged-main CI with the reviewed qualified enrollment, qualify
 trusted-main App credentials and token cleanup with writes OFF, then complete the
 root-owned successor-control cutover and actual App-only delivery proof. No local
 success qualifies those platform gates. The source does not authorize visibility,

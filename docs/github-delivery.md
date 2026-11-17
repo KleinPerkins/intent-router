@@ -2,8 +2,9 @@
 
 This is source for the accepted G1 successor. It does not report that publication,
 Actions, enrollment, App credentials, controls, or live native merging are qualified.
-The initial policy is disabled and its producer list is empty. Qualified opaque
-account enrollment requires its separate reviewed source admission. Repository
+The source policy enrolls the qualified WORK and PERSONAL producers; the repository
+writer switch remains OFF until live qualification. Qualified opaque
+account enrollment is included in this reviewed source admission. Repository
 `REVIEWER_APP_ENABLED` must remain OFF until the root verifies all accepted
 qualification and cutover gates.
 This source state alone does not authorize writes. Workflow dispatch is always read-only. Automated writes additionally require the repository variable
@@ -250,8 +251,8 @@ mandatory root qualification. Source tests do not qualify either live delivery p
 
 1. Preserve exact source/settings/control preimages and clear actual public exposure.
    Review the initial CI/App/capture candidate independently under its originating
-   account. The initial source bootstrap keeps both write switches off and producers
-   empty. Qualified enrollment is a separate source admission.
+   account. The initial source bootstrap includes the qualified producers and current adapter
+   hashes in the same reviewed admission. The repository writer stays OFF.
 2. After the accepted publication gate, enable authorized hosted candidate PR CI
    while retaining legacy blockers. Prove current head/base/merge checkout and
    fail-closed negative canaries on the actual candidate.
@@ -264,8 +265,10 @@ mandatory root qualification. Source tests do not qualify either live delivery p
    the accepted per-ruleset owner exceptions. Credential identity/scope probes do
    not establish full trusted-main readiness; complete that gate in the selected
    route below. Provisioning and repository controls remain root-owned operations.
-5. Select exactly one first-enrollment route. An empty trusted registry cannot
-   admit its own enrollment PR; neither route grants agent merge/bypass authority.
+5. This candidate uses combined initial source/producer admission, followed by
+   merged-main CI and read-only App qualification. The alternatives below apply only
+   to a predecessor with an empty trusted registry; they do not require a second
+   enrollment PR for this candidate or grant agent merge/bypass authority.
 
    **Ordinary route — qualify before enrollment.** Run the read-only App qualification
    described below on existing main and require success. Qualify each account/runtime,
