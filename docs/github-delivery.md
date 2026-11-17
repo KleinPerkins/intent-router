@@ -8,7 +8,8 @@ account enrollment requires its separate reviewed source admission. Repository
 qualification and cutover gates.
 This source state alone does not authorize writes. Workflow dispatch is always read-only. Automated writes additionally require the repository variable
 `REVIEWER_APP_ENABLED` to equal `true`, enabled trusted enrollment policy, and every
-live gate. Only existing App **4217367** approves a head and requests native **SQUASH**.
+live gate. Existing App **4217367** is the only authorized automatic approver and
+native **SQUASH** delivery actor; it must supply its own qualifying approval.
 No agent/manual merge command is part of this helper.
 
 The accepted G1 transition uses both App-owned native paths after the same
@@ -173,11 +174,23 @@ additional mutation endpoint is introduced.
 GitHub provides no atomic compare-and-set on auto-merge absence together with
 approval. These live reads reject observed pre-arming; they cannot technically
 exclude a concurrent owner/admin or an equally privileged unauthorized writer
-between reads. This is an explicit current limitation; no operator acceptance
-of that concurrent-writer delivery risk is asserted here. Agents remain
-prohibited from pre-arming, bypassing or retrying
-uncertain native operations. Strict native protections and expected-head checks
-still apply; mocked races do not prove exclusion of privileged concurrent actors.
+between reads. On 2026-11-17 the operator explicitly accepted this documented
+limited residual risk and directed execution to proceed. Another write-capable
+actor can arm auto-merge after the last null read but before App approval, and
+that approval can release the other actor’s request. App-only delivery is an
+authorization and operating rule, not an atomic exclusivity guarantee. This
+acceptance is distinct from the earlier Q16 receipt-trust decision.
+
+The App still supplies or reconciles its own current exact-head approval after
+fresh independent review, meaningful exact-tuple CI and control checks. A
+coexisting unsolicited approval never substitutes for that evidence and is not
+itself prohibited. Unknown or observed existing auto-merge requests still fail
+admission. Existing-approval reconciliation prevents duplicate submissions after
+known prior approval; it does not eliminate the first-approval race. Agents
+remain forbidden from manually merging, pre-arming or cancelling auto-merge,
+bypassing checks or retrying uncertain native operations. Strict native
+protections and expected-head checks still apply. Mocked races do not prove
+exclusion of privileged concurrent actors; no new technical exclusion is claimed.
 
 Existing or unknown native auto-merge requests block before approval and again
 before either native mutation; the App never adopts or cancels another request.

@@ -33,9 +33,14 @@ separate origin record, and publish the actual unedited review receipt. Unknown
 origin, unavailable matching runtime, incomplete/failed review and stale tuples
 block delivery. See `local-review.md`, `pr-creation.md` and `github-delivery.md`.
 
-Only Chaos Scheduler App4217367 may approve a head and request native squash
-immediately for merge-ready PRs or native squash auto-merge for eligible blocked
-PRs. Agents never merge or manipulate auto-merge. Trusted-main code validates fresh
+Chaos Scheduler App4217367 is the only authorized automatic approver and native
+squash delivery actor. Other approvals never substitute for its own qualifying
+approval; coexisting unsolicited approvals are not inherently prohibited. The
+operator accepted the documented concurrent-writer race on 2026-11-17: another
+write-capable actor may arm auto-merge after the last null read and App approval
+may release that request. This is an operating authorization boundary, not atomic
+exclusion. Unknown or observed existing auto-merge still fails admission. Agents
+never merge, pre-arm, cancel auto-merge or bypass checks. Trusted-main code validates fresh
 review/origin evidence, complete exact CI, current merge parents, effective strict
 checks/review/history/squash controls and installation identity before each write.
 

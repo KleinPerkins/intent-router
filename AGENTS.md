@@ -79,5 +79,10 @@ use its qualified trusted local adapter. Capture actual reports, fix findings,
 review the new tuple and publish the unedited receipt via the documented adapters.
 No human technical review, shared-username inference, fabricated receipts or
 cross-account substitution. Missing matching runtime or incomplete review blocks
-delivery. Only the qualified Chaos Scheduler App approves and requests native
-squash. Agents never merge, bypass controls or operate native auto-merge.
+delivery. The qualified Chaos Scheduler App is the only authorized automatic
+approver and native squash actor; other approvals never substitute for its own
+evidence. The operator accepted the documented concurrent-writer race on
+2026-11-17; this is an operating rule, not atomic actor exclusion. Coexisting
+unsolicited approvals are not inherently prohibited. Unknown or observed
+existing auto-merge still fails admission. Agents never merge, pre-arm or cancel
+auto-merge, bypass controls or retry uncertain native mutations.
