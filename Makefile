@@ -13,25 +13,25 @@ help: ## Show available targets
 	@echo "  make test            - test suite (unittest; local-only, no network)"
 	@echo "  make freeze          - contract-freeze checker (freeze strings + required-key floors)"
 	@echo "  make status-verify   - recompute the status.yml ledger against disk/tests (cannot lie)"
-	@echo "  make verify          - test + freeze + status-verify + install --check (the repo gate)"
+	@echo "  make verify          - canonical gate: tests + freeze + status + static/full install checks"
 	@echo "  make verify-install  - full install lifecycle in a throwaway HOME (headless/CI-safe)"
 	@echo "  make fix-hooks       - install KleinPerkins local commit guards if the host overlay is present (see SECURITY.md)"
 	@echo "  make version         - print the package version"
 
 install: ## Install intent-router (idempotent)
-	@./install.sh
+	@bash ./install.sh
 
 repair: ## Force re-copy the runtime
-	@./install.sh --repair
+	@bash ./install.sh --repair
 
 doctor: ## Read-only health check of the install
-	@./install.sh --doctor
+	@bash ./install.sh --doctor
 
 check: ## CI-safe static preflight (no writes to HOME)
-	@./install.sh --check
+	@bash ./install.sh --check
 
 uninstall: ## Remove the install (KEEP_STATE=1 to preserve router state)
-	@./install.sh --uninstall $(if $(KEEP_STATE),--keep-state,)
+	@bash ./install.sh --uninstall $(if $(KEEP_STATE),--keep-state,)
 
 test: ## Run the test suite (unittest: contract-freeze, additive-proof, zero-link, status-verify, constitution, cli-stub)
 	@bash tests/run-tests.sh
@@ -42,21 +42,53 @@ freeze: ## Contract-freeze checker (mirror of AWA's behavior-only freeze: string
 status-verify: ## Recompute the status.yml ledger against disk/tests (the ledger cannot lie)
 	@PYTHONPATH=. python3 -m intent_router.status_verify --strict
 
-verify: ## Full local verification: test + freeze + status-verify + install --check
+verify: ## Canonical local gate: tests + freeze + status + static and full install checks
 	@bash tests/run-tests.sh
 	@bash checks/intent-contract-freeze.sh
 	@PYTHONPATH=. python3 -m intent_router.status_verify --strict
-	@./install.sh --check
+	@bash ./install.sh --check
+	@$(MAKE) --no-print-directory verify-install
 	@echo "verify: OK"
 
 verify-install: ## Exercise the full install lifecycle in a throwaway HOME (never touches real ~)
-	@set -e; tmp=$$(mktemp -d); \
-	  env HOME=$$tmp XDG_DATA_HOME=$$tmp/.local/share XDG_CONFIG_HOME=$$tmp/.config XDG_STATE_HOME=$$tmp/.local/state ./install.sh >/dev/null; \
-	  env HOME=$$tmp XDG_DATA_HOME=$$tmp/.local/share XDG_CONFIG_HOME=$$tmp/.config XDG_STATE_HOME=$$tmp/.local/state ./install.sh >/dev/null; \
+	@set -eu; \
+	  outer=""; \
+	  cleanup() { \
+	    if [ -n "$${outer:-}" ]; then \
+	      rm -rf "$$outer" || return $$?; \
+	      outer=""; \
+	    fi; \
+	  }; \
+	  on_exit() { rc=$$?; trap - 0 HUP INT TERM; set +e; cleanup; exit "$$rc"; }; \
+	  on_hup() { trap - 0 HUP INT TERM; set +e; cleanup; exit 129; }; \
+	  on_int() { trap - 0 HUP INT TERM; set +e; cleanup; exit 130; }; \
+	  on_term() { trap - 0 HUP INT TERM; set +e; cleanup; exit 143; }; \
+	  trap 'on_exit' 0; \
+	  trap 'on_hup' HUP; \
+	  trap 'on_int' INT; \
+	  trap 'on_term' TERM; \
+	  outer=$$(mktemp -d "$${TMPDIR:-/tmp}/intent-router-verify.XXXXXX"); \
+	  inner="$$outer/tmp"; \
+	  HOME="$$outer/home"; \
+	  XDG_DATA_HOME="$$outer/data"; \
+	  XDG_CONFIG_HOME="$$outer/config"; \
+	  XDG_STATE_HOME="$$outer/state"; \
+	  export HOME XDG_DATA_HOME XDG_CONFIG_HOME XDG_STATE_HOME; \
+	  mkdir -p "$$HOME" "$$inner"; \
+	  runtime="$$XDG_DATA_HOME/intent-router/current"; \
+	  pointer="$$XDG_DATA_HOME/intent-router/release-pointer.json"; \
+	  env_file="$$XDG_CONFIG_HOME/intent-router/env"; \
+	  state_dir="$$XDG_STATE_HOME/intent-router"; \
+	  env HOME="$$HOME" XDG_DATA_HOME="$$XDG_DATA_HOME" XDG_CONFIG_HOME="$$XDG_CONFIG_HOME" XDG_STATE_HOME="$$XDG_STATE_HOME" TMPDIR="$$inner" bash ./install.sh >/dev/null; \
+	  env HOME="$$HOME" XDG_DATA_HOME="$$XDG_DATA_HOME" XDG_CONFIG_HOME="$$XDG_CONFIG_HOME" XDG_STATE_HOME="$$XDG_STATE_HOME" TMPDIR="$$inner" bash ./install.sh >/dev/null; \
 	  echo "  idempotent double-install OK"; \
-	  env HOME=$$tmp XDG_DATA_HOME=$$tmp/.local/share XDG_CONFIG_HOME=$$tmp/.config XDG_STATE_HOME=$$tmp/.local/state ./install.sh --doctor; \
-	  env HOME=$$tmp XDG_DATA_HOME=$$tmp/.local/share XDG_CONFIG_HOME=$$tmp/.config XDG_STATE_HOME=$$tmp/.local/state ./install.sh --uninstall >/dev/null; \
-	  rm -rf $$tmp; \
+	  env HOME="$$HOME" XDG_DATA_HOME="$$XDG_DATA_HOME" XDG_CONFIG_HOME="$$XDG_CONFIG_HOME" XDG_STATE_HOME="$$XDG_STATE_HOME" TMPDIR="$$inner" bash "$$XDG_DATA_HOME/intent-router/current/install.sh" --doctor; \
+	  env HOME="$$HOME" XDG_DATA_HOME="$$XDG_DATA_HOME" XDG_CONFIG_HOME="$$XDG_CONFIG_HOME" XDG_STATE_HOME="$$XDG_STATE_HOME" TMPDIR="$$inner" bash "$$XDG_DATA_HOME/intent-router/current/install.sh" --uninstall >/dev/null; \
+	  test ! -e "$$runtime"; \
+	  test ! -e "$$pointer"; \
+	  test ! -e "$$env_file"; \
+	  test ! -e "$$state_dir"; \
+	  cleanup; \
 	  echo "verify-install: OK"
 
 version: ## Print the package version
